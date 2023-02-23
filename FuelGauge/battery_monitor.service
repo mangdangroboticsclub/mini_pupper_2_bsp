@@ -1,0 +1,11 @@
+[Unit]
+Description=battery monitor service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/battery_monitor
+User=root
+
+[Install]
+WantedBy=sysinit.target

@@ -1,0 +1,21 @@
+#!/usr/bin/python
+from MangDang.mini_pupper.ESP32Interface import ESP32Interface
+from playsound import playsound
+import time
+
+#Power monitor
+def main():
+    esp32 = ESP32Interface()
+    while True:
+        power_status=esp32.get_power_status()
+        if power_status == None:
+            continue
+        current_voltage=power_status['volt']
+        # Servos will be disabled by ESP32 when power is low
+        if current_voltage <= 6.20:
+            # install scrip will replace BASEDIR
+            playsound('BASEDIR/Audio/low_power.mp3')
+        time.sleep(8)
+
+if __name__ == '__main__':
+    main()
