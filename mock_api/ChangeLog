@@ -1,0 +1,34 @@
+CHANGES
+=======
+
+* rename minipupper to mini\_pupper
+* unified name to mini\_pupper
+* Display now shows IP address, added placeholder images for different states
+* adding shutdown and display API, work in progres
+* make script update\_kernel\_modules.sh callable from any directory
+* fixed typo
+* make battery\_monitor executable
+* abstract nvram API
+* Fix servo reset
+* Fix pwm range
+* Avoid spi and gpiomem file permission error
+* Reset servo after test to turn torque off
+* Update README.md
+* Update .gitignore
+* Update README
+* Cleanup rc.local
+* Update Python\_Modules to Python\_Module
+* Update Python\_Modules name to Python\_Module, and add Unutu 22.04 Server support
+* Update README
+* Fix no sound error
+* Fix device file permission error
+* Add .gitignore
+* Remove unused argument validation
+* Fix file permission
+* Update based on first test
+* Update based on first test
+* Update README.md
+* Update baseline based on hdumcke's repo
+* Update README.md
+* Add the first version of mini pupper bsp
+* Initial commit

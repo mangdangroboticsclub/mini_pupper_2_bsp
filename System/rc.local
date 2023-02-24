@@ -1,0 +1,10 @@
+#!/bin/bash
+#
+# Copyright (c) 2020, MangDang Technology Co., Limited
+#
+
+# set cpu performance
+echo performance > /sys/bus/cpu/devices/cpu0/cpufreq/scaling_governor
+
+# install script will replace BASEDIR
+mpg123 BASEDIR/Audio/power_on.mp3 &
