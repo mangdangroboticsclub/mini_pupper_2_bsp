@@ -50,6 +50,7 @@ sudo sed -i "s|BASEDIR|$BASEDIR|" /usr/bin/battery_monitor
 cd /tmp
 wget --no-check-certificate https://bootstrap.pypa.io/get-pip.py
 sudo python get-pip.py
+sudo pip install setuptools==58.2.0 # temporary fix https://github.com/mangdangroboticsclub/mini_pupper_ros/pull/45#discussion_r1104759104
 
 ### Install Python module
 sudo apt install -y python3-dev
