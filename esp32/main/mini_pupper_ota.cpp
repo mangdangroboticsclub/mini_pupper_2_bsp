@@ -19,7 +19,7 @@ static const char* TAG = "OTA";
 #include "mini_pupper_ota.h"
 
 #define JOIN_TIMEOUT_MS (1000000)
-#define FIRMWARE_UPGRADE_URL "https://ota.marlysys.com/mini_pupper_app.bin"
+#define FIRMWARE_UPGRADE_URL "https://ota.mangdang.net/mini_pupper_app.bin"
 
 extern const u8 server_cert_pem_start[] asm("_binary_ca_cert_pem_start");
 extern const u8 server_cert_pem_end[] asm("_binary_ca_cert_pem_end");
@@ -124,6 +124,8 @@ void check_ota_updates(const char *ssid, const char *passwd)
         ESP_ERROR_CHECK( esp_wifi_stop() );
         return;
     }
+
+    esp_wifi_set_ps(WIFI_PS_NONE);
     
     esp_http_client_config_t config = {
         .url = FIRMWARE_UPGRADE_URL,
