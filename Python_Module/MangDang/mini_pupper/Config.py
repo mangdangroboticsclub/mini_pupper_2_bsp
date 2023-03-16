@@ -54,8 +54,8 @@ class Configuration:
         #################### STANCE ####################
         self.delta_x = 0.059
         self.delta_y = 0.050
-        self.x_shift = 0.0065
-        self.z_shift = -0.01
+        self.x_shift = 0.0
+        self.z_shift = 0.0
         self.default_z_ref = -0.08
 
         #################### SWING ######################
