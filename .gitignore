@@ -226,6 +226,12 @@ Python_Module/.eggs/
 Python_Module/MangDang/mini_pupper/__pycache__
 Python_Module/MangDang.egg-info/
 .pytest_cache
+Python_Module/ChangeLog
+Python_Module/AUTHORS
+mock_api/ChangeLog
+mock_api/AUTHORS
+
+
 
 # esp32-proxy
 esp32_proxy/esp32-proxy
