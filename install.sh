@@ -55,7 +55,7 @@ sudo pip install setuptools==58.2.0 # temporary fix https://github.com/mangdangr
 ### Install Python module
 sudo apt install -y python3-dev
 sudo git config --global --add safe.directory $BASEDIR # temporary fix https://bugs.launchpad.net/devstack/+bug/1968798
-sudo pip install $BASEDIR/Python_Module
+sudo PBR_VERSION=$($BASEDIR/Python_Module/get-version.sh) pip install $BASEDIR/Python_Module
 
 ### Make pwm sysfs and nvmem work for non-root users
 ### reference: https://github.com/raspberrypi/linux/issues/1983
