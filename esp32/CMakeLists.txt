@@ -8,7 +8,7 @@ set(EXTRA_COMPONENT_DIRS $ENV{IDF_PATH}/examples/system/console/advanced/compone
 if(CMAKE_HOST_WIN32)
   set(PROJECT_VER "Build on Windows")
 ELSE()
-  execute_process(COMMAND ${CMAKE_SOURCE_DIR}/get-version.sh OUTPUT_VARIABLE PROJECT_VER)
+  execute_process(COMMAND ${CMAKE_SOURCE_DIR}/../get-version.sh OUTPUT_VARIABLE PROJECT_VER)
 ENDIF()
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)

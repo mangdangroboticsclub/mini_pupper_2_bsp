@@ -1,6 +1,6 @@
 appname := esp32-proxy
 
-VERSION := $(shell ./get-version.sh)
+VERSION := $(shell ../get-version.sh)
 
 CXX := g++
 CXXFLAGS := -g -Wall -std=c++11 -D PROJECT_VER=\"$(VERSION)\"
