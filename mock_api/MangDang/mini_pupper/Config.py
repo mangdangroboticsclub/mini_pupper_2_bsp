@@ -1,19 +1,19 @@
 import numpy as np
 from MangDang.mini_pupper.ServoCalibration import MICROS_PER_RAD, NEUTRAL_ANGLE_DEGREES
 from MangDang.mini_pupper.HardwareConfig import PS4_COLOR, PS4_DEACTIVATED_COLOR
+from MangDang.mini_pupper.ESP32Interface import ESP32Interface
 from enum import Enum
 
 # TODO: put these somewhere else
 class PWMParams:
     def __init__(self):
-        self.pins = np.array([[15, 12, 9, 6], [14, 11, 8, 5], [13, 10, 7, 4]])
-        self.range = 4096  ## ADC 12 bits
-        self.freq = 250  ## PWM freq
+        self.servo_ids = np.array([[1, 4, 7, 10], [2, 5, 8, 11], [3, 6, 9, 12]])
+        self.esp32 = ESP32Interface()
 
 
 class ServoParams:
     def __init__(self):
-        self.neutral_position_pwm = 1500  # Middle position
+        self.neutral_position = 512  # Middle position
         self.micros_per_rad = MICROS_PER_RAD  # Must be calibrated
 
         # The neutral angle of the joint relative to the modeled zero-angle in degrees, for each joint
@@ -54,8 +54,8 @@ class Configuration:
         #################### STANCE ####################
         self.delta_x = 0.059
         self.delta_y = 0.050
-        self.x_shift = 0.0065
-        self.z_shift = -0.01
+        self.x_shift = 0.0
+        self.z_shift = 0.0
         self.default_z_ref = -0.08
 
         #################### SWING ######################
