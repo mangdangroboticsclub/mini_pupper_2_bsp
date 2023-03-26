@@ -34,7 +34,7 @@ def angle_to_position(angle, servo_params, axis_index, leg_index):
         desired servo position
     """
     angle_deviation = (angle - servo_params.neutral_angles[axis_index, leg_index]) * servo_params.servo_multipliers[axis_index, leg_index]
-    servo_position = (servo_params.neutral_position + servo_params.micros_per_rad * angle_deviation)
+    servo_position = (servo_params.neutral_position - servo_params.micros_per_rad * angle_deviation)
     return servo_position
 
 
