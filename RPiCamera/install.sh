@@ -29,9 +29,7 @@ sudo apt upgrade -y
 sudo apt install -y v4l-utils
 
 # Edit the /boot/firmware/config.txt file to enable camera support
-if grep -q "^camera_auto_detect=1" /boot/firmware/config.txt; then
-  sudo sed -i 's/^camera_auto_detect=1/# camera_auto_detect=1/g' /boot/firmware/config.txt
-fi
+sudo sed -i 's/^camera_auto_detect=1/# camera_auto_detect=1/g' /boot/firmware/config.txt
 echo "gpu_mem=128" | sudo tee -a /boot/firmware/config.txt
 echo "start_x=1" | sudo tee -a /boot/firmware/config.txt
 
@@ -43,7 +41,5 @@ cd $BASEDIR/dts
 sudo dtc -I dts -O dtb -o /boot/firmware/dt-blob.bin dt-blob-cam1.dts
 # For more details about the dts file, please refer to [https://datasheets.raspberrypi.org](https://datasheets.raspberrypi.org)
 
-# Reboot the system to apply the changes
-# Delete this section if you integrate this file into a general installation script
-read -n 1 -s -r -p "Camera settings successful. Press any key to reboot."
-sudo reboot
+# Print successful information
+echo "Camera settings successful, changes will be applied after the next reboot."
