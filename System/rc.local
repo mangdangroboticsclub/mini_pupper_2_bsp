@@ -6,5 +6,5 @@
 # set cpu performance
 echo performance > /sys/bus/cpu/devices/cpu0/cpufreq/scaling_governor
 
-# install script will replace BASEDIR
-mpg123 BASEDIR/Audio/power_on.mp3 &
+cardnums==$(aplay -l  | grep Headphones | cut -d ' ' -f 2 | cut -d ':' -f 1)
+mpg123 -a hw:$cardnums,0 /home/ubuntu/mini_pupper_bsp/Audio/power_on.mp3 &

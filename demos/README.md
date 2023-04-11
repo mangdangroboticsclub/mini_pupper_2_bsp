@@ -25,3 +25,17 @@ Run:
 These script will produce a GUI, either run it when a monitor is connect to your Mini Pupper or use it with ssh X Windows forwarding.
 
 The IMU is positioned "upside down" on the main board, the application must correct the orientation.
+
+## Audio Demo
+
+Run:
+
+./audio_test.sh
+
+you have 5 seconds to record your voice, after that the recording will be replayed
+
+## Camera Demo
+
+Run:
+
+./camera_ffplay_test.py
