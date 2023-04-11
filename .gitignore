@@ -55,7 +55,6 @@ EEPROM/at24.c
 modules.order
 Module.symvers
 Mkfile.old
-dkms.conf
 
 
 ### https://raw.github.com/github/gitignore/d0b80a469983a7beece8fa1f5c48a8242318b531/Python.gitignore
