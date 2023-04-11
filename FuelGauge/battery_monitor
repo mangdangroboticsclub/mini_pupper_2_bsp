@@ -1,7 +1,7 @@
 #!/usr/bin/python
 from MangDang.mini_pupper.ESP32Interface import ESP32Interface
-from playsound import playsound
 import time
+import subprocess
 
 #Power monitor
 def main():
@@ -13,8 +13,7 @@ def main():
         current_voltage=power_status['volt']
         # Servos will be disabled by ESP32 when power is low
         if current_voltage <= 6.20:
-            # install scrip will replace BASEDIR
-            playsound('BASEDIR/Audio/low_power.mp3')
+            subprocess.run(['/home/ubuntu/mini_pupper_bsp/FuelGauge/play-low-power-sound.sh'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(8)
 
 if __name__ == '__main__':
