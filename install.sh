@@ -27,7 +27,7 @@ echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selecti
 sudo sed -i "s/# deb-src/deb-src/g" /etc/apt/sources.list
 sudo apt update
 sudo apt -y upgrade
-sudo apt install -y i2c-tools dpkg-dev curl python-is-python3 mpg321 python3-tk openssh-server screen
+sudo apt install -y i2c-tools dpkg-dev curl python-is-python3 mpg321 python3-tk openssh-server screen alsa-utils
 sudo sed -i "s/pulse/alsa/" /etc/libao.conf
 if [ $(lsb_release -cs) == "jammy" ]; then
     sudo sed -i "s/cards.pcm.front/cards.pcm.default/" /usr/share/alsa/alsa.conf
@@ -38,13 +38,11 @@ sudo rm -rf /var/lib/mini_pupper_bsp
 sudo cp -r $BASEDIR/Display /var/lib/mini_pupper_bsp
 
 ### Install system components
-for dir in IO_Configuration FuelGauge System esp32_proxy; do
+$BASEDIR/prepare_dkms.sh
+for dir in IO_Configuration FuelGauge System esp32_proxy rpi-i2s-audio; do
     cd $BASEDIR/$dir
     ./install.sh
 done
-
-sudo sed -i "s|BASEDIR|$BASEDIR|" /etc/rc.local
-sudo sed -i "s|BASEDIR|$BASEDIR|" /usr/bin/battery_monitor
 
 ### Install pip
 cd /tmp

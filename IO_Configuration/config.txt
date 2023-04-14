@@ -12,6 +12,7 @@ arm_boost=1
 # parameters related to the base device-tree they must appear *before* any
 # other dtoverlay= specification
 dtparam=audio=on
+dtparam=i2s=on
 dtparam=i2c_arm=on
 dtparam=spi=on
 
