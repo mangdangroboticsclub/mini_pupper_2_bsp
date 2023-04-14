@@ -15,17 +15,5 @@ class Capabilities:
             return None
         return self.capabilities[capability]
 
-    def add_capability(self, capability, description):
-        if self.has_capability(capability):
-            return False
-        self.capabilities[capability] = description
-        return True
-
-    def remove_capability(self, capability):
-        if not self.has_capability(capability):
-            return False
-        del self.capabilities[capability]
-        return True
-
     def list_capabilities(self):
         return self.capabilities
