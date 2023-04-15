@@ -13,7 +13,7 @@ arm_boost=1
 # other dtoverlay= specification
 dtparam=audio=on
 dtparam=i2s=on
-dtparam=i2c_arm=on
+#dtparam=i2c_arm=on
 dtparam=spi=on
 
 # Comment out the following line if the edges of the desktop appear outside
@@ -43,12 +43,12 @@ dtoverlay=uart3
 
 
 [all]
-# Required for mini pupper
-dtparam=i2c1
-dtoverlay=i2c3,pins_4_5
-dtoverlay=i2c4,pins_6_7
+# Required for mini pupper v2
 dtoverlay=spi0-1cs
-dtoverlay=i2c-pwm-pca9685a
 dtoverlay=audremap,pins_12_13
 dtparam=pwr_led_trigger=none
 dtparam=pwr_led_activelow=off
+dtoverlay=gpio-key,gpio=2,label=rear,keycode=240
+dtoverlay=gpio-key,gpio=3,label=right,keycode=240
+dtoverlay=gpio-key,gpio=6,label=front,keycode=240
+dtoverlay=gpio-key,gpio=16,label=left,keycode=240
