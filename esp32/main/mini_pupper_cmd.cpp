@@ -485,14 +485,14 @@ static int mini_pupper_cmd_setID(int argc, char **argv)
         printf("Invalid servo ID\r\n");
         return 0;
     }
-    if( servo_id>12 ) {
+    if( servo_id>12 && servo_id !=99) {
         printf("Invalid servo ID\r\n");
         return 0;
     }
 
     /* Check servo_newid "--newid" option */
     int servo_newid = servo_newid_args.servo_newid->ival[0];
-    if(servo_newid<0 || servo_newid>12) {
+    if( (servo_newid<0 || servo_newid>12) && servo_newid!=99) {
         printf("Invalid new servo ID\r\n");
         return 0;
     }
