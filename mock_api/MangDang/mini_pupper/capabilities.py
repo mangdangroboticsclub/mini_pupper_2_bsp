@@ -1,8 +1,8 @@
 class Capabilities:
 
-    def __init__(self, image_dir='/var/lib/mini_pupper_bsp'):
+    def __init__(self):
         self.capabilities = {}
-        self.capabilities['version'] = 'mp2'
+        self.capabilities['version'] = 'mini_pupper_2'
         self.capabilities['imu'] = 'onboard'
         self.capabilities['microphone'] = 'onboard'
         self.capabilities['speaker'] = 'onboard'
