@@ -1,3 +1,4 @@
+#!/usr/bin/python
 from MangDang.mini_pupper.capabilities import Capabilities
 
 mp = Capabilities()
