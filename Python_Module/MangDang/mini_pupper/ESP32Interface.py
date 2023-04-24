@@ -1,5 +1,6 @@
 import socket
 import errno
+import time
 from struct import pack, unpack
 
 
@@ -43,6 +44,16 @@ class ESP32Interface:
 
     def servos_set_position(self, positions):
         torque = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        self.servos_set_position_torque(positions, torque)
+
+    def save_calibration(self):
+        # We signal the request by setting torque to an invalid value
+        torque = [99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99]
+        positions = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        self.servos_set_position_torque(positions, torque)
+        time.sleep(0.5) # allow time for ESP32 to receive instruction
+        torque = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        positions = [512, 512, 512, 512, 512, 512, 512, 512, 512, 512, 512, 512]
         self.servos_set_position_torque(positions, torque)
 
     def servos_get_position(self):
