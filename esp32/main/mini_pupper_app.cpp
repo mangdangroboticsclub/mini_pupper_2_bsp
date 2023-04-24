@@ -28,12 +28,6 @@
 
 static const char* TAG = "MAIN";
 
-static u16 const REF_ZERO_POSITION {512}; // Hard-coded REF/ZERO position for calibration (0..1023). TODO : from Flash ?
-
-#define MOUNT_PATH "/data"
-#define HISTORY_PATH MOUNT_PATH "/history.txt"
-#define CALIBRATE_PATH MOUNT_PATH "/calib.txt"
-
 static void initialize_filesystem(void)
 {
     static wl_handle_t wl_handle;
@@ -308,104 +302,6 @@ extern "C" void app_main(void)
                 // force HOST service disable
                 host.enable_service(false);
 
-            }
-            break;
-
-        case STATE_CALIBRATION_START:
-            {
-                // note : enter this state by CLI command "calibrate-begin"
-
-                // force HOST service disable
-                host.enable_service(false);
-
-                // update positions to ZERO/REF position
-                u16 servoPositions[12] {0}; 
-                for(auto & position : servoPositions)
-                    position = REF_ZERO_POSITION;
-                servo.setPosition12Async(servoPositions);
-                servo.setTorque12Async(servoTorquesON);   
-                vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-                // force torque disable
-                servo.setTorque12Async(servoTorquesOFF);
-                ESP_LOGI(TAG, "Servos are set to neutral position, you can now assemble the robot");
-
-                // reset calibration data
-                servo.resetCalibration();
-
-                // go to manual calibration
-                state = STATE_CALIBRATION;
-                ESP_LOGI(TAG, "STATE_CALIBRATION.");   
-            }
-            break;
-
-        case STATE_CALIBRATION:
-            // Mini pupper is calibrating.
-            // IMU is working. 
-            // SERVO are powered ON and torque is disabled
-            // HOST service is disabled (torque switch and goal position setpoint are ignored, SERVO feedback OK, IMU feedback ok, POWER feedback ok)
-            // SERVO can be moved to ZERO/REF position by hand            
-            {
-                // force HOST service disable
-                host.enable_service(false);
-
-                // force torque disable
-                servo.setTorque12Async(servoTorquesOFF);
-
-                // debug
-                u16 servoPositions[12] {0}; 
-                servo.getPosition12Async(servoPositions);        
-                ESP_LOGD(TAG, "%d %d %d %d %d %d %d %d %d %d %d %d",
-                    servoPositions[0],servoPositions[1],servoPositions[2],
-                    servoPositions[3],servoPositions[4],servoPositions[5],
-                    servoPositions[6],servoPositions[7],servoPositions[8],
-                    servoPositions[9],servoPositions[10],servoPositions[11]
-                );
-
-            }
-            break;
-
-        case STATE_CALIBRATION_FINISH:
-            {
-                // note : enter this state by CLI command "calibrate-end"
-
-                // acquire present position
-                u16 servoPositions[12] {0}; 
-                servo.getPosition12Async(servoPositions); 
-
-                // compute calibration offsets
-                s16 servoOffsets[12] {0}; 
-                for(size_t index=0; index<12; ++ index)
-                {
-                    servoOffsets[index] = (s16)REF_ZERO_POSITION - (s16)servoPositions[index];
-                }
-                ESP_LOGI(TAG, "Computed Offsets : %d %d %d %d %d %d %d %d %d %d %d %d",
-                    servoOffsets[0],servoOffsets[1],servoOffsets[2],
-                    servoOffsets[3],servoOffsets[4],servoOffsets[5],
-                    servoOffsets[6],servoOffsets[7],servoOffsets[8],
-                    servoOffsets[9],servoOffsets[10],servoOffsets[11]
-                );
-
-                // save to flash
-                FILE * f = fopen(CALIBRATE_PATH, "w");
-                if (f == NULL) {
-                    ESP_LOGE(TAG, "Failed to open file for writing");
-                }
-                if(f)
-                {
-                    for(size_t index=0; index<12; ++ index)
-                    {
-                        fprintf(f,"%d\n", servoOffsets[index]);
-                    }
-                    fclose(f);
-                    ESP_LOGI(TAG, "Calibration saved.");   
-                }
-                // apply offset
-                servo.setCalibration(servoOffsets);
-
-                // go to IDLE state after calibration
-                state = STATE_IDLE;
-                ESP_LOGI(TAG, "STATE_IDLE.");   
             }
             break;
 

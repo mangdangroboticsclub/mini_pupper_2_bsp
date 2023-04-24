@@ -218,6 +218,7 @@ struct SERVO
     int setID(u8 ID, u8 newID);
     void setCalibration(s16 const offset[]);
     void resetCalibration();
+    s16 getCalibrationOffset(u8 const servoID);
 
     /* ASYNC API 
      *
@@ -250,6 +251,10 @@ struct SERVO
     void getPosition12Async(u16 servoPositions[]);    
     void getSpeed12Async(s16 servoSpeeds[]);    
     void getLoad12Async(s16 servoLoads[]);    
+
+    // calibration helpers
+    u16 raw_to_calibrated_position(u16 raw_position, s16 calibration_offset) const;
+    u16 calibrated_to_raw_position(u16 calibrated_position, s16 calibration_offset) const;
 
     // public stats
     mini_pupper::periodic_process_monitor p_monitor;
@@ -297,10 +302,6 @@ protected:
     int check_reply_frame_no_parameter(u8 & ID);
 
     int uart_port_num {1};
-
-    // calibration helpers
-    u16 raw_to_calibrated_position(u16 raw_position, s16 calibration_offset) const;
-    u16 calibrated_to_raw_position(u16 calibrated_position, s16 calibration_offset) const;
 };
 
 extern SERVO servo;

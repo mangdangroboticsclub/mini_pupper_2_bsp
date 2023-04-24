@@ -90,10 +90,10 @@ static void register_mini_pupper_cmd_enable(void)
 static int mini_pupper_cmd_isEnabled(int argc, char **argv)
 {
     if(servo.is_power_enabled()) {
-        printf("servos are enabled\r\n");
+        ESP_LOGI(TAG,"servos are enabled");
     }
     else{
-        printf("servos are not enabled\r\n");
+        ESP_LOGI(TAG,"servos are not enabled");
     }
     return 0;
 }
@@ -125,15 +125,15 @@ static int mini_pupper_cmd_disableTorque(int argc, char **argv)
 
     int servo_id = servo_id_args.servo_id->ival[0];
     if(servo_id<0) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     if( servo_id>12 && servo_id != 254 ) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     if( servo_id == 254) {
-        printf("Warning: your servo ID is the broadcast ID\r\n");
+        ESP_LOGI(TAG, "Warning: your servo ID is the broadcast ID");
     }
     servo.disable_torque((u8)servo_id);
     return 0;
@@ -164,15 +164,15 @@ static int mini_pupper_cmd_enableTorque(int argc, char **argv)
 
     int servo_id = servo_id_args.servo_id->ival[0];
     if(servo_id<0) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     if( servo_id>12 && servo_id != 254 ) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     if( servo_id == 254) {
-        printf("Warning: your servo ID is the broadcast ID\r\n");
+        ESP_LOGI(TAG, "Warning: your servo ID is the broadcast ID");
     }
     servo.enable_torque((u8)servo_id);
     return 0;
@@ -203,20 +203,20 @@ static int mini_pupper_cmd_isTorqueEnabled(int argc, char **argv)
 
     int servo_id = servo_id_args.servo_id->ival[0];
     if(servo_id<0) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     if( servo_id>12) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     u8 enable {0};
     servo.is_torque_enable((u8)servo_id,enable);
     if(enable) {
-        printf("servos torque is enabled\r\n");
+        ESP_LOGI(TAG, "servos torque is enabled");
     }
     else{
-        printf("servos torque is not enabled\r\n");
+        ESP_LOGI(TAG, "servos torque is not enabled");
     }
     return 0;
 }
@@ -242,15 +242,15 @@ static void register_mini_pupper_cmd_isTorqueEnabled(void)
 
 static int mini_pupper_cmd_scan(int argc, char **argv)
 {
-    printf("Servos on the bus:\r\n");
+    ESP_LOGI(TAG, "Servos on the bus:");
     for(u8 i = 1; i<13; i++)
     {
         if(servo.ping(i) == SERVO_STATUS_OK)
         {
-            printf("%d ", i);
+            ESP_LOGI(TAG, "%d ", i);
 	   }
     }
-    printf("\r\n");
+    ESP_LOGI(TAG, "");
     return 0;
 }
 
@@ -284,49 +284,13 @@ static void register_mini_pupper_cmd_extended_menu(void)
     ESP_ERROR_CHECK( esp_console_cmd_register(&cmd_extended_menu) );
 }
 
-static int mini_pupper_cmd_calibrate_begin(int argc, char **argv)
-{
-    state = STATE_CALIBRATION_START;
-    return 0;
-}
-
-static void register_mini_pupper_cmd_calibrate_begin(void)
-{
-    const esp_console_cmd_t cmd_calibrate = {
-        .command = "calibrate-begin",
-        .help = "begin mini pupper calibration",
-        .hint = NULL,
-        .func = &mini_pupper_cmd_calibrate_begin,
-           .argtable = NULL
-    };
-    ESP_ERROR_CHECK( esp_console_cmd_register(&cmd_calibrate) );
-}
-
-static int mini_pupper_cmd_calibrate_end(int argc, char **argv)
-{
-    state = STATE_CALIBRATION_FINISH;
-    return 0;
-}
-
-static void register_mini_pupper_cmd_calibrate_end(void)
-{
-    const esp_console_cmd_t cmd_calibrate = {
-        .command = "calibrate-end",
-        .help = "end mini pupper calibration",
-        .hint = NULL,
-        .func = &mini_pupper_cmd_calibrate_end,
-           .argtable = NULL
-    };
-    ESP_ERROR_CHECK( esp_console_cmd_register(&cmd_calibrate) );
-}
-
 static int mini_pupper_cmd_calibrate_clear(int argc, char **argv)
 {
   if (remove("/data//calib.txt") == 0) {
-      printf("The calibration file is deleted successfully.");
+      ESP_LOGI(TAG, "The calibration file is deleted successfully.");
       servo.resetCalibration();
   } else {
-      printf("The calibration file is not deleted.");
+      ESP_LOGI(TAG, "The calibration file is not deleted.");
   }
   return 0;
 }
@@ -396,21 +360,21 @@ static int mini_pupper_cmd_setPosition(int argc, char **argv)
     /* Check servoID "--id" option */
     int servo_id = servo_pos_args.servo_id->ival[0];
     if(servo_id<0) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     if( servo_id>12 && servo_id != 254 ) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     if( servo_id == 254) {
-        printf("Warning: your servo ID is the broadcast ID\r\n");
+        ESP_LOGI(TAG, "Warning: your servo ID is the broadcast ID");
     }
 
     /* Check servo_pos "--pos" option */
     int servo_pos = servo_pos_args.servo_pos->ival[0];
     if(servo_pos<0 || servo_pos>1023) {
-        printf("Invalid servo position\r\n");
+        ESP_LOGI(TAG, "Invalid servo position");
         return 0;
     }
     servo.set_goal_position((u8)servo_id, (u16)servo_pos);
@@ -482,18 +446,18 @@ static int mini_pupper_cmd_setID(int argc, char **argv)
     /* Check servoID "--id" option */
     int servo_id = servo_newid_args.servo_id->ival[0];
     if(servo_id<0) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     if( servo_id>12 && servo_id !=99) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
 
     /* Check servo_newid "--newid" option */
     int servo_newid = servo_newid_args.servo_newid->ival[0];
     if( (servo_newid<0 || servo_newid>12) && servo_newid!=99) {
-        printf("Invalid new servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid new servo ID");
         return 0;
     }
     servo.setID((u8)servo_id, (u8)servo_newid);
@@ -527,17 +491,17 @@ static int mini_pupper_cmd_getPosition(int argc, char **argv)
     int servo_id = servo_id_loop_args.servo_id->ival[0];
     int loop = servo_id_loop_args.loop->ival[0];
     if(servo_id<0) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     if( servo_id>12 ) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     for(int i=0; i<loop; i++){
         u16 position {0};
         servo.get_position((u8)servo_id, position);
-        printf("Pos: %d\r\n", position);
+        ESP_LOGI(TAG, "Pos: %d", position);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
     return 0;
@@ -570,17 +534,17 @@ static int mini_pupper_cmd_getSpeed(int argc, char **argv)
     int servo_id = servo_id_loop_args.servo_id->ival[0];
     int loop = servo_id_loop_args.loop->ival[0];
     if(servo_id<0) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     if( servo_id>12 ) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     for(int i=0; i<loop; i++){
         s16 speed {0};
         servo.get_speed((u8)servo_id,speed);
-        printf("Speed: %d\r\n", speed);
+        ESP_LOGI(TAG, "Speed: %d", speed);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
     return 0;
@@ -613,17 +577,17 @@ static int mini_pupper_cmd_getLoad(int argc, char **argv)
     int servo_id = servo_id_loop_args.servo_id->ival[0];
     int loop = servo_id_loop_args.loop->ival[0];
     if(servo_id<0) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     if( servo_id>12 ) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     for(int i=0; i<loop; i++){
         s16 load {0};
         servo.get_load((u8)servo_id,load);
-        printf("Load: %d\r\n", load);
+        ESP_LOGI(TAG, "Load: %d", load);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
     return 0;
@@ -656,17 +620,17 @@ static int mini_pupper_cmd_getVoltage(int argc, char **argv)
     int servo_id = servo_id_loop_args.servo_id->ival[0];
     int loop = servo_id_loop_args.loop->ival[0];
     if(servo_id<0) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     if( servo_id>12 ) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     for(int i=0; i<loop; i++){
         u8 voltage {0};
         servo.get_voltage((u8)servo_id,voltage);
-        printf("Voltage: %d\r\n", voltage);
+        ESP_LOGI(TAG, "Voltage: %d", voltage);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
     return 0;
@@ -699,17 +663,17 @@ static int mini_pupper_cmd_getTemperature(int argc, char **argv)
     int servo_id = servo_id_loop_args.servo_id->ival[0];
     int loop = servo_id_loop_args.loop->ival[0];
     if(servo_id<0) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     if( servo_id>12 ) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     for(int i=0; i<loop; i++){
         u8 temperature {0};
         servo.get_temperature((u8)servo_id,temperature);
-        printf("Temp: %d\r\n", temperature);
+        ESP_LOGI(TAG, "Temp: %d", temperature);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
     return 0;
@@ -742,17 +706,17 @@ static int mini_pupper_cmd_getMove(int argc, char **argv)
     int servo_id = servo_id_loop_args.servo_id->ival[0];
     int loop = servo_id_loop_args.loop->ival[0];
     if(servo_id<0) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     if( servo_id>12 ) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     for(int i=0; i<loop; i++){
         u8 move {0};
         servo.get_move((u8)servo_id,move);
-        printf("Move: %d\r\n", move);
+        ESP_LOGI(TAG, "Move: %d", move);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
     return 0;
@@ -785,17 +749,17 @@ static int mini_pupper_cmd_getCurrent(int argc, char **argv)
     int servo_id = servo_id_loop_args.servo_id->ival[0];
     int loop = servo_id_loop_args.loop->ival[0];
     if(servo_id<0) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     if( servo_id>12 ) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     for(int i=0; i<loop; i++){
         s16 current {0};
         servo.get_current((u8)servo_id,current);
-        printf("Current: %d\r\n", current);
+        ESP_LOGI(TAG, "Current: %d", current);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
     return 0;
@@ -827,21 +791,21 @@ static int mini_pupper_cmd_setPositionAsync(int argc, char **argv)
     /* Check servoID "--id" option */
     int servo_id = servo_pos_args.servo_id->ival[0];
     if(servo_id<0) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     if( servo_id>12 && servo_id != 254 ) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     if( servo_id == 254) {
-        printf("Warning: your servo ID is the broadcast ID\r\n");
+        ESP_LOGI(TAG, "Warning: your servo ID is the broadcast ID");
     }
 
     /* Check servo_pos "--pos" option */
     int servo_pos = servo_pos_args.servo_pos->ival[0];
     if(servo_pos<0 || servo_pos>1023) {
-        printf("Invalid servo position\r\n");
+        ESP_LOGI(TAG, "Invalid servo position");
         return 0;
     }
     servo.setPositionAsync((u8)servo_id, (u16)servo_pos);
@@ -908,14 +872,14 @@ static int mini_pupper_cmd_getPositionAsync(int argc, char **argv)
     /* Check servoID "--id" option */
     int servo_id = servo_id_args.servo_id->ival[0];
     if(servo_id<=0) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     if( servo_id>12 ) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
-    printf("Pos: %d\r\n", servo.getPositionAsync((u8)servo_id));
+    ESP_LOGI(TAG, "Pos: %d", servo.getPositionAsync((u8)servo_id));
     return 0;
 }
 
@@ -944,14 +908,14 @@ static int mini_pupper_cmd_getSpeedAsync(int argc, char **argv)
     /* Check servoID "--id" option */
     int servo_id = servo_id_args.servo_id->ival[0];
     if(servo_id<=0) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     if( servo_id>12 ) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
-    printf("ReadVel: %d\r\n", servo.getSpeedAsync((u8)servo_id));
+    ESP_LOGI(TAG, "ReadVel: %d", servo.getSpeedAsync((u8)servo_id));
     return 0;
 }
 
@@ -980,14 +944,14 @@ static int mini_pupper_cmd_getLoadAsync(int argc, char **argv)
     /* Check servoID "--id" option */
     int servo_id = servo_id_args.servo_id->ival[0];
     if(servo_id<=0) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
     if( servo_id>12 ) {
-        printf("Invalid servo ID\r\n");
+        ESP_LOGI(TAG, "Invalid servo ID");
         return 0;
     }
-    printf("Load: %d\r\n", servo.getLoadAsync((u8)servo_id));
+    ESP_LOGI(TAG, "Load: %d", servo.getLoadAsync((u8)servo_id));
     return 0;
 }
 
@@ -1071,8 +1035,6 @@ void register_mini_pupper_cmds(void)
 {
     register_mini_pupper_cmd_scan();
     register_mini_pupper_cmd_setID();
-    register_mini_pupper_cmd_calibrate_begin();
-    register_mini_pupper_cmd_calibrate_end();
     register_mini_pupper_cmd_calibrate_clear();
     register_mini_pupper_cmd_ota();
     // register_mini_pupper_cmd_extended_menu();

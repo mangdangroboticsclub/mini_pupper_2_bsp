@@ -149,6 +149,12 @@ void esp32_protocol(setpoint_and_feedback_data * control_block)
         };
         memcpy(tx_buffer+5,&control_block->control,sizeof(parameters_control_instruction_format));
 
+	// If torque is set to 99 we want to save calibration
+        if(tx_buffer[5] == 99)
+	{
+	    tx_buffer[4] = INST_SAVECALIBRATION;
+	}
+
         // Checksum
         tx_buffer[tx_buffer_size-1] = compute_checksum(tx_buffer);
 

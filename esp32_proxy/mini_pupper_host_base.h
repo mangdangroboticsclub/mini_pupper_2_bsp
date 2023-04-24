@@ -10,6 +10,7 @@
 
 // host instruction code
 #define INST_CONTROL 0x01   // Host sends servo position setpoints, ESP32 replies with servo feedback, attitude, ....
+#define INST_SAVECALIBRATION 0x02   // Host requests to save calibration file
 
 // frame parameters format for control instruction
 struct parameters_control_instruction_format
