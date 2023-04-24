@@ -13,6 +13,12 @@ class HardwareInterface:
     def set_actuator_position(self, joint_angle, axis, leg):
         send_servo_command(self.pwm_params, self.servo_params, joint_angle, axis, leg)
 
+    def get_actuator_positions(self):
+        return get_servo_positions(self.pwm_params, self.servo_params)
+
+    def get_actuator_efforts(self):
+        return get_servo_efforts(self.pwm_params, self.servo_params)
+
 
 def angle_to_position(angle, servo_params, axis_index, leg_index):
     """Converts a desired servo angle into the corresponding position command
@@ -36,6 +42,10 @@ def angle_to_position(angle, servo_params, axis_index, leg_index):
     angle_deviation = (angle - servo_params.neutral_angles[axis_index, leg_index]) * servo_params.servo_multipliers[axis_index, leg_index]
     servo_position = (servo_params.neutral_position - servo_params.micros_per_rad * angle_deviation)
     return servo_position
+
+
+def servo_position_to_angle(servo_position, servo_params, axis_index, leg_index):
+    raise NotImplementedError("Not implemented yet")
 
 
 def angle_to_servo_position(angle, pwm_params, servo_params, axis_index, leg_index):
@@ -69,3 +79,23 @@ def deactivate_servos(pi, pwm_params):
     for leg_index in range(4):
         for axis_index in range(3):
             pi.set_pwm(pwm_params.servo_ids[axis_index, leg_index], 0, 0)
+
+
+def get_servo_positions(pwm_params, servo_params):
+    positions = pwm_params.esp32.servos_get_position()
+    if positions is None:
+        return None
+    angles = np.zeros((3, 4))
+    for leg_index in range(4):
+        for axis_index in range(3):
+            angles[axis_index, leg_index] = servo_position_to_angle(
+                positions[pwm_params.servo_ids[axis_index, leg_index] - 1],
+                servo_params,
+                axis_index,
+                leg_index,
+            )
+    return angles
+
+
+def get_servo_efforts(pwm_params, servo_params):
+    raise NotImplementedError("Not implemented yet")
