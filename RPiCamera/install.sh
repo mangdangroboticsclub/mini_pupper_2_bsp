@@ -8,15 +8,6 @@
 # set -x
 set -e
 
-# Define an error handing function
-function handle_error {
-	echo "Error: $1"
-	read -p "Press Enter to continue..."
-	exit 1
-}
-
-# Set the error handling function
-trap 'handle_error "$?"' ERR
 
 # Get the directory where this script is located
 BASEDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
