@@ -37,6 +37,7 @@ private:
     bool _is_service_enabled {false};
     
     protocol_interpreter_handler _protocol_handler;
+    parameters_control_instruction_format prot_parameters;
 
     // background host serial bus service
     TaskHandle_t _task_handle {NULL};    

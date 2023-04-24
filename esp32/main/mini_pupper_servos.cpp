@@ -1114,6 +1114,11 @@ void SERVO::resetCalibration()
         state[index].calibration_offset = 0;
 }
 
+s16 SERVO::getCalibrationOffset(u8 const servoID)
+{
+    return state[servoID].calibration_offset;
+}
+
 u16 SERVO::raw_to_calibrated_position(u16 raw_position, s16 calibration_offset) const
 {
     s16 new_position {static_cast<s16>(raw_position)};

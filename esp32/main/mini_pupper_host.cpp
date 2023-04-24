@@ -1,4 +1,4 @@
-/* Authors : 
+/* Authors :
  * - Hdumcke
  * - Pat92fr
  */
@@ -12,7 +12,7 @@ static const char* TAG = "HOST";
 #include "mini_pupper_power.h"
 #include "mini_pupper_tasks.h"
 #include "mini_pupper_stats.h"
-
+#include "mini_pupper_app.h"
 
 #include "driver/uart.h"
 #include "esp_log.h"
@@ -27,7 +27,7 @@ void HOST_TASK(void * parameters);
 
 HOST host;
 
-HOST::HOST() : 
+HOST::HOST() :
 _uart_port_num(2),
 _is_service_enabled(false),
 _task_handle(NULL),
@@ -55,11 +55,11 @@ static StaticTask_t task_buffer;
 void HOST::start()
 {
     _task_handle = xTaskCreateStaticPinnedToCore(
-        HOST_TASK,   
+        HOST_TASK,
         "HOST INTERFACE SERVICE",
-        stack_size,         
-        (void*)this,        
-        HOST_PRIORITY,     
+        stack_size,
+        (void*)this,
+        HOST_PRIORITY,
         stack,
         &task_buffer,
         HOST_CORE
@@ -87,7 +87,7 @@ void HOST_TASK(void * parameters)
 
             // Event of UART receving data
             // We'd better handler data event fast, there would be much more data events than
-            // other types of events. If we take too much time on data event, the queue might be full.                
+            // other types of events. If we take too much time on data event, the queue might be full.
             case UART_DATA:
                 {
                     // log
@@ -103,41 +103,75 @@ void HOST_TASK(void * parameters)
                         bool const payload = protocol_interpreter(rx_buffer[index],protocol_handler);
                         if(payload)
                         {
-                            // waitinf for a INST_CONTROL frame
+                            // waiting for a INST_CONTROL frame
                             if(protocol_handler.payload_buffer[0]==INST_CONTROL && protocol_handler.payload_length == sizeof(parameters_control_instruction_format)+2)
                             {
                                 // decode parameters
-                                parameters_control_instruction_format parameters;
-                                memcpy(&parameters,&protocol_handler.payload_buffer[1],sizeof(parameters_control_instruction_format));
+                                memcpy(&host->prot_parameters,&protocol_handler.payload_buffer[1],sizeof(parameters_control_instruction_format));
 
                                 // log
                                 ESP_LOGD(TAG, "Goal Position: %d %d %d %d %d %d %d %d %d %d %d %d",
-                                    parameters.goal_position[0],parameters.goal_position[1],parameters.goal_position[2],
-                                    parameters.goal_position[3],parameters.goal_position[4],parameters.goal_position[5],
-                                    parameters.goal_position[6],parameters.goal_position[7],parameters.goal_position[8],
-                                    parameters.goal_position[9],parameters.goal_position[10],parameters.goal_position[11]
+                                    host->prot_parameters.goal_position[0],host->prot_parameters.goal_position[1],host->prot_parameters.goal_position[2],
+                                    host->prot_parameters.goal_position[3],host->prot_parameters.goal_position[4],host->prot_parameters.goal_position[5],
+                                    host->prot_parameters.goal_position[6],host->prot_parameters.goal_position[7],host->prot_parameters.goal_position[8],
+                                    host->prot_parameters.goal_position[9],host->prot_parameters.goal_position[10],host->prot_parameters.goal_position[11]
                                 );
                                 ESP_LOGD(TAG, "Torque Switch: %d %d %d %d %d %d %d %d %d %d %d %d",
-                                    parameters.torque_enable[0],parameters.torque_enable[1],parameters.torque_enable[2],
-                                    parameters.torque_enable[3],parameters.torque_enable[4],parameters.torque_enable[5],
-                                    parameters.torque_enable[6],parameters.torque_enable[7],parameters.torque_enable[8],
-                                    parameters.torque_enable[9],parameters.torque_enable[10],parameters.torque_enable[11]
+                                    host->prot_parameters.torque_enable[0],host->prot_parameters.torque_enable[1],host->prot_parameters.torque_enable[2],
+                                    host->prot_parameters.torque_enable[3],host->prot_parameters.torque_enable[4],host->prot_parameters.torque_enable[5],
+                                    host->prot_parameters.torque_enable[6],host->prot_parameters.torque_enable[7],host->prot_parameters.torque_enable[8],
+                                    host->prot_parameters.torque_enable[9],host->prot_parameters.torque_enable[10],host->prot_parameters.torque_enable[11]
                                 );
 
                                 // update servo setpoint only if service is enabled
                                 if(host->_is_service_enabled)
                                 {
-                                    servo.setTorque12Async(parameters.torque_enable);
-                                    servo.setPosition12Async(parameters.goal_position);
+                                    servo.setTorque12Async(host->prot_parameters.torque_enable);
+                                    servo.setPosition12Async(host->prot_parameters.goal_position);
                                 }
 
                                 // send have_to_reply
                                 have_to_reply = true;
 
                             }
+			    else if(protocol_handler.payload_buffer[0]==INST_SAVECALIBRATION)
+			    {
+                                // compute calibration offsets
+                                s16 servoOffsets[12] {0};
+                                for(size_t index=0; index<12; ++ index)
+                                {
+				    s16 const stored_offset {servo.getCalibrationOffset(index)};
+				    u16 const goal_position {host->prot_parameters.goal_position[index]};
+                                    servoOffsets[index] = (s16)REF_ZERO_POSITION - goal_position + stored_offset;
+				    host->prot_parameters.goal_position[index] = REF_ZERO_POSITION;
+                                }
+                                ESP_LOGI(TAG, "Computed Offsets : %d %d %d %d %d %d %d %d %d %d %d %d",
+                                    servoOffsets[0],servoOffsets[1],servoOffsets[2],
+                                    servoOffsets[3],servoOffsets[4],servoOffsets[5],
+                                    servoOffsets[6],servoOffsets[7],servoOffsets[8],
+                                    servoOffsets[9],servoOffsets[10],servoOffsets[11]
+                                );
+
+                                // save to flash
+                                FILE * f = fopen(CALIBRATE_PATH, "w");
+                                if (f == NULL) {
+                                    ESP_LOGE(TAG, "Failed to open file for writing");
+                                }
+                                if(f)
+                                {
+                                    for(size_t index=0; index<12; ++ index)
+                                    {
+                                        fprintf(f,"%d\n", servoOffsets[index]);
+                                    }
+                                    fclose(f);
+                                    ESP_LOGI(TAG, "Calibration saved.");
+                                }
+                                // apply offset
+                                servo.setCalibration(servoOffsets);
+			    }
                             else
                             {
-                                ESP_LOGI(TAG, "RX unexpected frame. Instr:%d. Length:%d",protocol_handler.payload_buffer[0],protocol_handler.payload_length);        
+                                ESP_LOGI(TAG, "RX unexpected frame. Instr:%d. Length:%d",protocol_handler.payload_buffer[0],protocol_handler.payload_length);
                                 host->f_monitor.update(mini_pupper::frame_error_rate_monitor::SYNTAX_ERROR, false);
                             }
                         }
@@ -162,8 +196,8 @@ void HOST_TASK(void * parameters)
                         feedback_parameters.current_A = POWER::get_current_A();
 
                         // build acknowledge frame
-                        static size_t const tx_payload_length {1+sizeof(parameters_control_acknowledge_format)+1};            
-                        static size_t const tx_buffer_size {4+tx_payload_length};            
+                        static size_t const tx_payload_length {1+sizeof(parameters_control_acknowledge_format)+1};
+                        static size_t const tx_buffer_size {4+tx_payload_length};
                         u8 tx_buffer[tx_buffer_size] {
                             0xFF,                                       // Start of Frame
                             0xFF,                                       // Start of Frame
@@ -220,7 +254,7 @@ void HOST_TASK(void * parameters)
             // Others
             default:
                 ESP_LOGI(TAG, "uart event type: %d", event.type);
-                break;       
+                break;
 
             } // Switch event
 
