@@ -6,7 +6,7 @@ set -e
 BASEDIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 ### Write release file
-echo HARDWARE=\"$(python ./mini_pupper_bsp/Python_Module/MangDang/mini_pupper/capabilities.py)\" > ~/mini-pupper-release
+echo HARDWARE=\"$(python3 ./mini_pupper_bsp/Python_Module/MangDang/mini_pupper/capabilities.py)\" > ~/mini-pupper-release
 echo MACHINE=\"$(uname -m)\" >> ~/mini-pupper-release
 if [ -f /boot/firmware/user-data ]
 then
@@ -64,7 +64,13 @@ sudo cp -r $BASEDIR/Display /var/lib/mini_pupper_bsp
 
 ### Install system components
 $BASEDIR/prepare_dkms.sh
-for dir in IO_Configuration FuelGauge System esp32_proxy rpi-i2s-audio; do
+if [ "$MACHINE" == "x86_64" ]
+then
+    COMPONENTS=(FuelGauge System esp32_proxy rpi-i2s-audio)
+else
+    COMPONENTS=(IO_Configuration FuelGauge System esp32_proxy rpi-i2s-audio)
+fi
+for dir in ${COMPONENTS[@]}; do
     cd $BASEDIR/$dir
     ./install.sh
 done
