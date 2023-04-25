@@ -5,6 +5,31 @@ set -e
 ### Get directory where this script is installed
 BASEDIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
+### Write release file
+echo HARDWARE=\"$(python ./mini_pupper_bsp/Python_Module/MangDang/mini_pupper/capabilities.py)\" > ~/mini-pupper-release
+echo MACHINE=\"$(uname -m)\" >> ~/mini-pupper-release
+if [ -f /boot/firmware/user-data ]
+then
+    echo CLOUD_INIT_CLONE=\"$(grep clone /boot/firmware/user-data | awk -F'"' '{print $2}')\" >> ~/mini-pupper-release
+    echo CLOUD_INIT_SCRIPT=\"$(grep setup_out /boot/firmware/user-data | awk -F'"' '{print $2}')\" >> ~/mini-pupper-release
+else
+    echo BUILD_SCRIPT=\"$(cd ~; ls *build.sh)\" >> ~/mini-pupper-release
+fi
+echo BSP_VERSION=\"$(cd ~/mini_pupper_bsp; ./get-version.sh)\" >> ~/mini-pupper-release
+cd ~/mini_pupper_bsp
+TAG_COMMIT=$(git rev-list --abbrev-commit --tags --max-count=1)
+TAG=$(git describe --abbrev=0 --tags ${TAG_COMMIT} 2>/dev/null || true)
+BSP_VERSION=./get-version.sh
+if [ "v$BSP_VERSION" == "TAG" ]
+then
+    echo IS_RELEASE=YES >> ~/mini-pupper-release
+else
+    echo IS_RELEASE=NO >> ~/mini-pupper-release
+fi
+
+source  ~/mini-pupper-release
+
+
 
 ############################################
 # wait until unattended-upgrade has finished
@@ -53,7 +78,12 @@ sudo pip install setuptools==58.2.0 # temporary fix https://github.com/mangdangr
 ### Install Python module
 sudo apt install -y python3-dev
 sudo git config --global --add safe.directory $BASEDIR # temporary fix https://bugs.launchpad.net/devstack/+bug/1968798
-sudo PBR_VERSION=$(cd $BASEDIR; ./get-version.sh) pip install $BASEDIR/Python_Module
+if [ "$IS_RELEASE" == "YES" ]
+then
+    sudo PBR_VERSION=$(cd $BASEDIR; ./get-version.sh) pip install $BASEDIR/Python_Module
+else
+    sudo pip install $BASEDIR/Python_Module
+fi
 
 ### Make pwm sysfs and nvmem work for non-root users
 ### reference: https://github.com/raspberrypi/linux/issues/1983
