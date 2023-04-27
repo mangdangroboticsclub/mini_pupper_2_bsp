@@ -6,7 +6,7 @@ set -e
 BASEDIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 ### Write release file
-echo HARDWARE=\"$(python3 ./mini_pupper_bsp/Python_Module/MangDang/mini_pupper/capabilities.py)\" > ~/mini-pupper-release
+echo HARDWARE=\"$(python3 $BASEDIR/Python_Module/MangDang/mini_pupper/capabilities.py)\" > ~/mini-pupper-release
 echo MACHINE=\"$(uname -m)\" >> ~/mini-pupper-release
 if [ -f /boot/firmware/user-data ]
 then
