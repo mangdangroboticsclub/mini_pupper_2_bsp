@@ -1,9 +1,3 @@
-# ST7789 IPS LCD (320x240) driver
-#
-# This file is based on 
-#    --https://github.com/pimoroni/st7789-python with MIT License(also based on Adafruit Industries code)
-#    --Adafruit Industries code with MIT License
-#      https://github.com/adafruit/Adafruit_Python_ILI9341/blob/master/Adafruit_ILI9341/ILI9341.py
 # Copyright (c) 2014 Adafruit Industries
 # Author: Tony DiCola
 #
@@ -24,184 +18,139 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-#
-
 import numbers
 import time
 import numpy as np
-import sys
-import os
 
-from PIL import Image
-from PIL import ImageDraw
-
-import MangDang.Adafruit_GPIO as GPIO
-import MangDang.Adafruit_GPIO.SPI as SPI
-from MangDang.LCD.gif import AnimatedGif
-
-SPI_CLOCK_HZ = 31200000 # 31.2 MHz
-
-# Constants for interacting with display registers.
-ST7789_TFTWIDTH    = 320
-ST7789_TFTHEIGHT   = 240
-
-ST7789_NOP         = 0x00
-ST7789_SWRESET     = 0x01
-ST7789_RDDID       = 0x04
-ST7789_RDDST       = 0x09
-ST7789_RDDPM       = 0x0A
-ST7789_RDDMADCTL   = 0x0B
-ST7789_RDDCOLMOD   = 0x0C
-ST7789_RDDIM       = 0x0D
-ST7789_RDDSM       = 0x0E
-ST7789_RDDSDR      = 0x0F
-
-ST7789_SLPIN       = 0x10
-ST7789_SLPOUT      = 0x11
-ST7789_PTLON       = 0x12
-ST7789_NORON       = 0x13
-
-ST7789_INVOFF      = 0x20
-ST7789_INVON       = 0x21
-ST7789_GAMSET      = 0x26
-ST7789_DISPOFF     = 0x28
-ST7789_DISPON      = 0x29
-ST7789_CASET       = 0x2A
-ST7789_RASET       = 0x2B
-ST7789_RAMWR       = 0x2C
-ST7789_RAMRD       = 0x2E
-
-ST7789_PTLAR       = 0x30
-ST7789_VSCRDEF     = 0x33
-ST7789_TEOFF       = 0x34
-ST7789_TEON        = 0x35
-ST7789_MADCTL      = 0x36
-ST7789_VSCRSADD    = 0x37
-ST7789_IDMOFF      = 0x38
-ST7789_IDMON       = 0x39
-ST7789_COLMOD      = 0x3A
-ST7789_RAMWRC      = 0x3C
-ST7789_RAMRDC      = 0x3E
-
-ST7789_TESCAN      = 0x44
-ST7789_RDTESCAN    = 0x45
-
-ST7789_WRDISBV     = 0x51
-ST7789_RDDISBV     = 0x52
-ST7789_WRCTRLD     = 0x53
-ST7789_RDCTRLD     = 0x54
-ST7789_WRCACE      = 0x55
-ST7789_RDCABC      = 0x56
-ST7789_WRCABCMB    = 0x5E
-ST7789_RDCABCMB    = 0x5F
-
-ST7789_RDABCSDR    = 0x68
-
-ST7789_RDID1       = 0xDA
-ST7789_RDID2       = 0xDB
-ST7789_RDID3       = 0xDC
-
-ST7789_RAMCTRL     = 0xB0
-ST7789_RGBCTRL     = 0xB1
-ST7789_PORCTRL     = 0xB2
-ST7789_FRCTRL1     = 0xB3
-
-ST7789_GCTRL       = 0xB7
-ST7789_DGMEN       = 0xBA
-ST7789_VCOMS       = 0xBB
-
-ST7789_LCMCTRL     = 0xC0
-ST7789_IDSET       = 0xC1
-ST7789_VDVVRHEN    = 0xC2
-
-ST7789_VRHS        = 0xC3
-ST7789_VDVSET      = 0xC4
-ST7789_VCMOFSET    = 0xC5
-ST7789_FRCTR2      = 0xC6
-ST7789_CABCCTRL    = 0xC7
-ST7789_REGSEL1     = 0xC8
-ST7789_REGSEL2     = 0xCA
-ST7789_PWMFRSEL    = 0xCC
-
-ST7789_PWCTRL1     = 0xD0
-ST7789_VAPVANEN    = 0xD2
-ST7789_CMD2EN      = 0xDF5A6902
-ST7789_PVGAMCTRL   = 0xE0
-ST7789_NVGAMCTRL   = 0xE1
-ST7789_DGMLUTR     = 0xE2
-ST7789_DGMLUTB     = 0xE3
-ST7789_GATECTRL    = 0xE4
-ST7789_PWCTRL2     = 0xE8
-ST7789_EQCTRL      = 0xE9
-ST7789_PROMCTRL    = 0xEC
-ST7789_PROMEN      = 0xFA
-ST7789_NVMSET      = 0xFC
-ST7789_PROMACT     = 0xFE
-
-# Colours for convenience
-ST7789_BLACK       = 0x0000 # 0b 00000 000000 00000
-ST7789_BLUE        = 0x001F # 0b 00000 000000 11111
-ST7789_GREEN       = 0x07E0 # 0b 00000 111111 00000
-ST7789_RED         = 0xF800 # 0b 11111 000000 00000
-ST7789_CYAN        = 0x07FF # 0b 00000 111111 11111
-ST7789_MAGENTA     = 0xF81F # 0b 11111 000000 11111
-ST7789_YELLOW      = 0xFFE0 # 0b 11111 111111 00000
-ST7789_WHITE       = 0xFFFF # 0b 11111 111111 11111
+import spidev
+import RPi.GPIO as GPIO
 
 
-def color565(r, g, b):
-    """Convert red, green, blue components to a 16-bit 565 RGB value. Components
-    should be values 0 to 255.
-    """
-    return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3)
+__version__ = '0.0.4'
 
-def image_to_data(image):
-    """Generator function to convert a PIL image to 16-bit 565 RGB bytes."""
-    # NumPy is much faster at doing this. NumPy code provided by:
-    # Keith (https://www.blogger.com/profile/02555547344016007163)
-    pb = np.array(image.convert('RGB')).astype('uint16')
-    color = ((pb[:,:,0] & 0xF8) << 8) | ((pb[:,:,1] & 0xFC) << 3) | (pb[:,:,2] >> 3)
-    return np.dstack(((color >> 8) & 0xFF, color & 0xFF)).flatten().tolist()
+BG_SPI_CS_BACK = 0
+BG_SPI_CS_FRONT = 1
+
+SPI_CLOCK_HZ = 16000000
+
+ST7789_NOP = 0x00
+ST7789_SWRESET = 0x01
+ST7789_RDDID = 0x04
+ST7789_RDDST = 0x09
+
+ST7789_SLPIN = 0x10
+ST7789_SLPOUT = 0x11
+ST7789_PTLON = 0x12
+ST7789_NORON = 0x13
+
+ST7789_INVOFF = 0x20
+ST7789_INVON = 0x21
+ST7789_DISPOFF = 0x28
+ST7789_DISPON = 0x29
+
+ST7789_CASET = 0x2A
+ST7789_RASET = 0x2B
+ST7789_RAMWR = 0x2C
+ST7789_RAMRD = 0x2E
+
+ST7789_PTLAR = 0x30
+ST7789_MADCTL = 0x36
+ST7789_COLMOD = 0x3A
+
+ST7789_FRMCTR1 = 0xB1
+ST7789_FRMCTR2 = 0xB2
+ST7789_FRMCTR3 = 0xB3
+ST7789_INVCTR = 0xB4
+ST7789_DISSET5 = 0xB6
+
+ST7789_GCTRL = 0xB7
+ST7789_GTADJ = 0xB8
+ST7789_VCOMS = 0xBB
+
+ST7789_LCMCTRL = 0xC0
+ST7789_IDSET = 0xC1
+ST7789_VDVVRHEN = 0xC2
+ST7789_VRHS = 0xC3
+ST7789_VDVS = 0xC4
+ST7789_VMCTR1 = 0xC5
+ST7789_FRCTRL2 = 0xC6
+ST7789_CABCCTRL = 0xC7
+
+ST7789_RDID1 = 0xDA
+ST7789_RDID2 = 0xDB
+ST7789_RDID3 = 0xDC
+ST7789_RDID4 = 0xDD
+
+ST7789_GMCTRP1 = 0xE0
+ST7789_GMCTRN1 = 0xE1
+
+ST7789_PWCTR6 = 0xFC
+
 
 class ST7789(object):
-    """Representation of an ST7789 IPS LCD."""
+    """Representation of an ST7789 TFT LCD."""
 
-    def __init__(self):
-        """Create an instance of the display using SPI communication.  Must
-        provide the GPIO pin number for the D/C pin and the SPI driver.  Can
-        optionally provide the GPIO pin number for the reset pin as the rst
-        parameter.
+    def __init__(self, port, cs, dc, backlight=None, rst=None, width=240,
+                 height=240, rotation=90, invert=True, spi_speed_hz=4000000,
+                 offset_left=0,
+                 offset_top=0):
+        """Create an instance of the display using SPI communication.
+
+        Must provide the GPIO pin number for the D/C pin and the SPI driver.
+
+        Can optionally provide the GPIO pin number for the reset pin as the rst parameter.
+
+        :param port: SPI port number
+        :param cs: SPI chip-select number (0 or 1 for BCM
+        :param backlight: Pin for controlling backlight
+        :param rst: Reset pin for ST7789
+        :param width: Width of display connected to ST7789
+        :param height: Height of display connected to ST7789
+        :param rotation: Rotation of display connected to ST7789
+        :param invert: Invert display
+        :param spi_speed_hz: SPI speed (in Hz)
+
         """
-        RST = 27  # Set GPIO pin# 15 (BCM 14) as reset control
-        DC = 24  # Set GPIO pin# 11 (BCM 15) as DATA/command (NOT MOSI!)
-        LED = 17  # Set GPIO pin# 13 (BCM 27) as backlight control
-        SPI_PORT = 0
-        SPI_DEVICE = 0
-        SPI_MODE = 0b11
-        SPI_SPEED_HZ = 40000000
-        self._spi = SPI.SpiDev(SPI_PORT, SPI_DEVICE, max_speed_hz=SPI_SPEED_HZ)
-        self._rst = RST
-        self._dc = DC
-        self._led = LED
-        self._gpio = None
-        self.width = ST7789_TFTWIDTH
-        self.height = ST7789_TFTHEIGHT
-        if self._gpio is None:
-            self._gpio = GPIO.get_platform_gpio()
-        # Set DC as output.
-        self._gpio.setup(self._dc, GPIO.OUT)
-        # Setup reset as output (if provided).
-        if self._rst is not None:
-            self._gpio.setup(self._rst, GPIO.OUT)
-        # Turn on the backlight LED
-        self._gpio.setup(self._led, GPIO.OUT)
+        if rotation not in [0, 90, 180, 270]:
+            raise ValueError("Invalid rotation {}".format(rotation))
 
-        # Set SPI to mode 0, MSB first.
-        self._spi.set_mode(SPI_MODE)
-        self._spi.set_bit_order(SPI.MSBFIRST)
-        self._spi.set_clock_hz(SPI_CLOCK_HZ)
-        # Create an image buffer.
-        self.buffer = Image.new('RGB', (self.width, self.height))
+        if width != height and rotation in [90, 270]:
+            raise ValueError("Invalid rotation {} for {}x{} resolution".format(rotation, width, height))
+
+        GPIO.setwarnings(False)
+        GPIO.setmode(GPIO.BCM)
+
+        self._spi = spidev.SpiDev(port, cs)
+        self._spi.mode = 0
+        self._spi.lsbfirst = False
+        self._spi.max_speed_hz = spi_speed_hz
+
+        self._dc = dc
+        self._rst = rst
+        self._width = width
+        self._height = height
+        self._rotation = rotation
+        self._invert = invert
+
+        self._offset_left = offset_left
+        self._offset_top = offset_top
+
+        # Set DC as output.
+        GPIO.setup(dc, GPIO.OUT)
+
+        # Setup backlight as output (if provided).
+        self._backlight = backlight
+        if backlight is not None:
+            GPIO.setup(backlight, GPIO.OUT)
+            GPIO.output(backlight, GPIO.LOW)
+            time.sleep(0.1)
+            GPIO.output(backlight, GPIO.HIGH)
+
+        # Setup reset as output (if provided).
+        if rst is not None:
+            GPIO.setup(self._rst, GPIO.OUT)
+            self.reset()
+        self._init()
 
     def send(self, data, is_data=True, chunk_size=4096):
         """Write a byte or array of bytes to the display. Is_data parameter
@@ -210,14 +159,27 @@ class ST7789(object):
         single SPI transaction, with a default of 4096.
         """
         # Set DC low for command, high for data.
-        self._gpio.output(self._dc, is_data)
+        GPIO.output(self._dc, is_data)
         # Convert scalar argument to list so either can be passed as parameter.
         if isinstance(data, numbers.Number):
             data = [data & 0xFF]
         # Write data a chunk at a time.
         for start in range(0, len(data), chunk_size):
-            end = min(start+chunk_size, len(data))
-            self._spi.write(data[start:end])
+            end = min(start + chunk_size, len(data))
+            self._spi.xfer(data[start:end])
+
+    def set_backlight(self, value):
+        """Set the backlight on/off."""
+        if self._backlight is not None:
+            GPIO.output(self._backlight, value)
+
+    @property
+    def width(self):
+        return self._width if self._rotation == 0 or self._rotation == 180 else self._height
+
+    @property
+    def height(self):
+        return self._height if self._rotation == 0 or self._rotation == 180 else self._width
 
     def command(self, data):
         """Write a byte or array of bytes to the display as command data."""
@@ -230,119 +192,106 @@ class ST7789(object):
     def reset(self):
         """Reset the display, if reset pin is connected."""
         if self._rst is not None:
-            self._gpio.set_high(self._rst)
-            time.sleep(0.100)
-            self._gpio.set_low(self._rst)
-            time.sleep(0.100)
-            self._gpio.set_high(self._rst)
-            time.sleep(0.100)
+            GPIO.output(self._rst, 1)
+            time.sleep(0.500)
+            GPIO.output(self._rst, 0)
+            time.sleep(0.500)
+            GPIO.output(self._rst, 1)
+            time.sleep(0.500)
 
     def _init(self):
-        # Initialize the display.  Broken out as a separate function so it can
-        # be overridden by other displays in the future.
+        # Initialize the display.
 
-        time.sleep(0.012)
-        self.command(0x11)
-        time.sleep(0.150)
+        self.command(ST7789_SWRESET)    # Software reset
+        time.sleep(0.150)               # delay 150 ms
 
-        self.command(0x36)
-        self.data(0xA0)
+        self.command(ST7789_MADCTL)
+        self.data(0x70)
+
+        self.command(ST7789_FRMCTR2)    # Frame rate ctrl - idle mode
+        self.data(0x0C)
+        self.data(0x0C)
         self.data(0x00)
+        self.data(0x33)
+        self.data(0x33)
 
-        self.command(0x3A)
+        self.command(ST7789_COLMOD)
         self.data(0x05)
 
-        self.command(0xB2)
-        self.data(0x0C)
-        self.data(0x0C)
-        self.data(0x00)
-        self.data(0x33)
-        self.data(0x33)
+        self.command(ST7789_GCTRL)
+        self.data(0x14)
 
-        self.command(0xB7)
-        self.data(0x35)
+        self.command(ST7789_VCOMS)
+        self.data(0x37)
 
-        ## ---------------------------------ST7789S Power setting - ----------------------------
+        self.command(ST7789_LCMCTRL)    # Power control
+        self.data(0x2C)
 
-        self.command(0xBB)
-        self.data(0x29)
-
-        # self.command(0xC0)
-        # self.data(0x2C)
-
-        self.command(0xC2)
+        self.command(ST7789_VDVVRHEN)   # Power control
         self.data(0x01)
 
-        self.command(0xC3)
-        self.data(0x19)
+        self.command(ST7789_VRHS)       # Power control
+        self.data(0x12)
 
-        self.command(0xC4)
+        self.command(ST7789_VDVS)       # Power control
         self.data(0x20)
-
-        self.command(0xC5)
-        self.data(0x1A)
-
-        self.command(0xC6)
-        self.data(0x1F)   ## 0x0F:60Hz
-
-        # self.command(0xCA)
-        # self.data(0x0F)
-        #
-        # self.command(0xC8)
-        # self.data(0x08)
-        #
-        # self.command(0x55)
-        # self.data(0x90)
 
         self.command(0xD0)
         self.data(0xA4)
         self.data(0xA1)
 
-        ## --------------------------------ST7789S        gamma        setting - -----------------------------
+        self.command(ST7789_FRCTRL2)
+        self.data(0x0F)
 
-        self.command(0xE0)
+        self.command(ST7789_GMCTRP1)    # Set Gamma
         self.data(0xD0)
-        self.data(0x08)
-        self.data(0x0E)
-        self.data(0x09)
-        self.data(0x09)
-        self.data(0x05)
-        self.data(0x31)
-        self.data(0x33)
-        self.data(0x48)
-        self.data(0x17)
-        self.data(0x14)
-        self.data(0x15)
-        self.data(0x31)
-        self.data(0x34)
+        self.data(0x04)
+        self.data(0x0D)
+        self.data(0x11)
+        self.data(0x13)
+        self.data(0x2B)
+        self.data(0x3F)
+        self.data(0x54)
+        self.data(0x4C)
+        self.data(0x18)
+        self.data(0x0D)
+        self.data(0x0B)
+        self.data(0x1F)
+        self.data(0x23)
 
-        self.command(0xE1)
+        self.command(ST7789_GMCTRN1)    # Set Gamma
         self.data(0xD0)
-        self.data(0x08)
-        self.data(0x0E)
-        self.data(0x09)
-        self.data(0x09)
-        self.data(0x15)
-        self.data(0x31)
-        self.data(0x33)
-        self.data(0x48)
-        self.data(0x17)
-        self.data(0x14)
-        self.data(0x15)
-        self.data(0x31)
-        self.data(0x34)
+        self.data(0x04)
+        self.data(0x0C)
+        self.data(0x11)
+        self.data(0x13)
+        self.data(0x2C)
+        self.data(0x3F)
+        self.data(0x44)
+        self.data(0x51)
+        self.data(0x2F)
+        self.data(0x1F)
+        self.data(0x1F)
+        self.data(0x20)
+        self.data(0x23)
 
-        self.command(0x21)
-        self.command(0x29)
-        time.sleep(0.100) # 100 ms
-        self._gpio.set_high(self._led)
+        if self._invert:
+            self.command(ST7789_INVON)   # Invert display
+        else:
+            self.command(ST7789_INVOFF)  # Don't invert display
+
+        self.command(ST7789_SLPOUT)
+
+        self.command(ST7789_DISPON)     # Display on
+        time.sleep(0.100)               # 100 ms
 
     def begin(self):
-        """Initialize the display.  Should be called once before other calls that
-        interact with the display are called.
+        """Set up the display
+
+        Deprecated. Included in __init__.
+
         """
-        self.reset()
-        self._init()
+        pass
 
     def set_window(self, x0=0, y0=0, x1=None, y1=None):
         """Set the pixel address window for proceeding drawing commands. x0 and
@@ -352,52 +301,60 @@ class ST7789(object):
         to width-1,height-1.
         """
         if x1 is None:
-            x1 = self.width-1
+            x1 = self._width - 1
+
         if y1 is None:
-            y1 = self.height-1
+            y1 = self._height - 1
+
+        y0 += self._offset_top
+        y1 += self._offset_top
+
+        x0 += self._offset_left
+        x1 += self._offset_left
+
         self.command(ST7789_CASET)       # Column addr set
         self.data(x0 >> 8)
-        self.data(x0)                    # XSTART
+        self.data(x0 & 0xFF)             # XSTART
         self.data(x1 >> 8)
-        self.data(x1)                    # XEND
+        self.data(x1 & 0xFF)             # XEND
         self.command(ST7789_RASET)       # Row addr set
         self.data(y0 >> 8)
-        self.data(y0)                    # YSTART
+        self.data(y0 & 0xFF)             # YSTART
         self.data(y1 >> 8)
-        self.data(y1)                    # YEND
+        self.data(y1 & 0xFF)             # YEND
         self.command(ST7789_RAMWR)       # write to RAM
 
-    #def display(self, image=None):
-    def display(self, image=None, x0=0, y0=0, x1=None, y1=None):
-        """Write the display buffer or provided image to the hardware.  If no
-        image parameter is provided the display buffer will be written to the
-        hardware.  If an image is provided, it should be RGB format and the
-        same dimensions as the display hardware.
+    def display(self, image):
+        """Write the provided image to the hardware.
+
+        :param image: Should be RGB format and the same dimensions as the display hardware.
+
         """
-        # By default write the internal buffer to the display.
-        if image is None:
-            image = self.buffer
         # Set address bounds to entire display.
-        #self.set_window()
-        if x1 is None:
-            x1 = self.width-1
-        if y1 is None:
-            y1 = self.height-1
-        self.set_window(x0, y0, x1, y1)
-        #image.thumbnail((x1-x0+1, y1-y0+1), Image.ANTIALIAS)
-        # Convert image to array of 16bit 565 RGB data bytes.
-        # Unfortunate that this copy has to occur, but the SPI byte writing
-        # function needs to take an array of bytes and PIL doesn't natively
-        # store images in 16-bit 565 RGB format.
-        pixelbytes = list(image_to_data(image))
+        self.set_window()
+
+        # Convert image to 16bit RGB565 format and
+        # flatten into bytes.
+        pixelbytes = self.image_to_data(image, self._rotation)
+
         # Write data to hardware.
-        self.data(pixelbytes)
+        for i in range(0, len(pixelbytes), 4096):
+            self.data(pixelbytes[i:i + 4096])
 
-    def clear(self, color=(0,0,0)):
-        """Clear the image buffer to the specified RGB color (default black)."""
-        width, height = self.buffer.size
-        self.buffer.putdata([color]*(width*height))
+    def image_to_data(self, image, rotation=0):
+        if not isinstance(image, np.ndarray):
+            image = np.array(image.convert('RGB'))
 
-    def draw(self):
-        """Return a PIL ImageDraw instance for 2D drawing on the image buffer."""
-        return ImageDraw.Draw(self.buffer)
+        # Rotate the image
+        pb = np.rot90(image, rotation // 90).astype('uint16')
+
+        # Mask and shift the 888 RGB into 565 RGB
+        red   = (pb[..., [0]] & 0xf8) << 8
+        green = (pb[..., [1]] & 0xfc) << 3
+        blue  = (pb[..., [2]] & 0xf8) >> 3
+
+        # Stick 'em together
+        result = red | green | blue
+
+        # Output the raw bytes
+        return result.byteswap().tobytes()
