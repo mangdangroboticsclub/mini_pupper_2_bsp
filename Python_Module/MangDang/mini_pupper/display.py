@@ -8,19 +8,7 @@ from MangDang.LCD.ST7789 import ST7789
 def show_image(image):
 
     # init st7789 device
-    disp = ST7789(
-        port=0, 
-        cs=0,
-        dc=24, 
-        backlight=17,
-        rst=27,
-        width=320,
-        height=240,
-        rotation=180,
-        spi_speed_hz=60 * 1000 * 1000,
-        offset_left=0,
-        offset_top=0
-   )
+    disp = ST7789()
     disp.begin()
 
     # show picture
