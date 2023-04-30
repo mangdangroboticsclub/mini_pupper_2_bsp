@@ -18,6 +18,11 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
+#
+# This program is based on
+# https://github.com/pimoroni/st7789-python/blob/master/library/ST7789/__init__.py
+# which is released under the MIT license.
+#
 import numbers
 import time
 import numpy as np
@@ -90,10 +95,10 @@ ST7789_PWCTR6 = 0xFC
 class ST7789(object):
     """Representation of an ST7789 TFT LCD."""
 
-    def __init__(self, port, cs, dc, backlight=None, rst=None, width=240,
-                 height=240, rotation=90, invert=True, spi_speed_hz=4000000,
-                 offset_left=0,
-                 offset_top=0):
+    # Set init input parameters using Mini Pupper configuration.
+    def __init__(self, port=0, cs=0, dc=24, backlight=17, rst=27, width=320,
+                 height=240, rotation=180, invert=True, spi_speed_hz=60000000,
+                 offset_left=0, offset_top=0):
         """Create an instance of the display using SPI communication.
 
         Must provide the GPIO pin number for the D/C pin and the SPI driver.
