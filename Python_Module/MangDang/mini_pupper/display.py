@@ -10,7 +10,6 @@ def show_image(image):
     # init st7789 device
     disp = ST7789()
     disp.begin()
-    disp.clear()
 
     # show picture
     disp.display(image)
