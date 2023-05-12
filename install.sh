@@ -50,7 +50,7 @@ echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selecti
 sudo sed -i "s/# deb-src/deb-src/g" /etc/apt/sources.list
 sudo apt update
 sudo apt -y upgrade
-sudo apt install -y i2c-tools dpkg-dev curl python-is-python3 mpg321 python3-tk openssh-server screen alsa-utils
+sudo apt install -y i2c-tools dpkg-dev curl python-is-python3 mpg321 python3-tk openssh-server screen alsa-utils libportaudio2
 sudo sed -i "s/pulse/alsa/" /etc/libao.conf
 if [ $(lsb_release -cs) == "jammy" ]; then
     sudo sed -i "s/cards.pcm.front/cards.pcm.default/" /usr/share/alsa/alsa.conf
@@ -78,6 +78,7 @@ cd /tmp
 wget --no-check-certificate https://bootstrap.pypa.io/get-pip.py
 sudo python get-pip.py
 sudo pip install setuptools==58.2.0 # temporary fix https://github.com/mangdangroboticsclub/mini_pupper_ros/pull/45#discussion_r1104759104
+sudo pip install sounddevice soundfile
 
 ### Install Python module
 sudo apt install -y python3-dev
