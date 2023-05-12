@@ -27,6 +27,9 @@ echo "start_x=1" | sudo tee -a /boot/firmware/config.txt
 # Add the user to the video group to grant access to video devices
 sudo usermod -aG video $USER
 
+# Install xauth for PC(Ubuntu22.04) GUI Display
+sudo apt install -y xauth
+
 # Compile the dt-blob file to support the camera
 cd $BASEDIR/dts
 sudo dtc -I dts -O dtb -o /boot/firmware/dt-blob.bin dt-blob-cam1.dts

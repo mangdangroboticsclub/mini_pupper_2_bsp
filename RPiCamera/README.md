@@ -23,7 +23,7 @@ Remember to handle the ribbon cable and connector carefully to avoid damage, and
 ![camera_all](/imgs/camera_all.jpg)
 
 
-## Step2: Install the camera driver and configure Raspberry Pi
+## Step2: Install the camera driver and configure Raspberry Pi on Mini Pupper 
 
 ```bash
 cd ~/mini_pupper_2_bsp/RPiCamera  # To RPiCamera directory
@@ -33,16 +33,13 @@ cd ~/mini_pupper_2_bsp/RPiCamera  # To RPiCamera directory
 . install.sh  # Set camera configurations
 ```
 
-## Step3: Test camera
+## Step3: Test Mini Pupper MIPI camera by Ubuntu22.04 PC
 
 
-- Camera ffplay test
+- Open a terminal and do camera test
 ```bash
+ssh -X minipupper@IP # such as, ssh -X ubuntu@192.168.5.109
 cd ~/mini_pupper_2_bsp/demos  # To demos directory
-```
-
-```bash
-sudo apt install python-is-python3 -y  # install python
 python camera_ffplay_test.py  # run ffplay test demo
 ```
 -  Camera image in RViz
