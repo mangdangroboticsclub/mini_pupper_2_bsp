@@ -50,7 +50,7 @@ echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selecti
 sudo sed -i "s/# deb-src/deb-src/g" /etc/apt/sources.list
 sudo apt update
 sudo apt -y upgrade
-sudo apt install -y i2c-tools dpkg-dev curl python-is-python3 mpg321 python3-tk openssh-server screen alsa-utils libportaudio2
+sudo apt install -y i2c-tools dpkg-dev curl python-is-python3 mpg321 python3-tk openssh-server screen alsa-utils libportaudio2 libsndfile1
 sudo sed -i "s/pulse/alsa/" /etc/libao.conf
 if [ $(lsb_release -cs) == "jammy" ]; then
     sudo sed -i "s/cards.pcm.front/cards.pcm.default/" /usr/share/alsa/alsa.conf
