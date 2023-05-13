@@ -20,7 +20,7 @@
 static bool const print_debug     {false};
 static bool const print_debug_max {false};
 
-static char const * filename {"/dev/ttyAMA1"};
+static char const * filename {"/dev/ttyAMA2"};
 
 static char const * version = PROJECT_VER;
 
