@@ -31,6 +31,7 @@ cd ~/mini_pupper_2_bsp/RPiCamera  # To RPiCamera directory
 
 ```bash
 . install.sh  # Set camera configurations
+reboot
 ```
 
 ## Step3: Test Mini Pupper MIPI camera by Ubuntu22.04 PC
