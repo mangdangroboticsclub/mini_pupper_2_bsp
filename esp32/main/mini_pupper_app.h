@@ -41,6 +41,11 @@ enum e_mini_pupper_state
     // SERVO are powered ON.
     // HOST service is disabled (torque switch and goal position setpoint are ignored, SERVO feedback OK, IMU feedback ok, POWER feedback ok)
 
+    STATE_CALIBRATION,
+    // Mini pupper is saving calibration.
+    // IMU is working.
+    // SERVO are powered OFF.
+
     STATE_RESTING
     // Mini pupper responds to HOST and CLI. 
     // IMU is working. 

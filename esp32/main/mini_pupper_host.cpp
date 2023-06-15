@@ -106,6 +106,10 @@ void HOST_TASK(void * parameters)
                             // waiting for a INST_CONTROL frame
                             if(protocol_handler.payload_buffer[0]==INST_CONTROL && protocol_handler.payload_length == sizeof(parameters_control_instruction_format)+2)
                             {
+				if(state == STATE_CALIBRATION)
+				{
+				     state = STATE_IDLE
+				}
                                 // decode parameters
                                 memcpy(&host->prot_parameters,&protocol_handler.payload_buffer[1],sizeof(parameters_control_instruction_format));
 
@@ -136,6 +140,7 @@ void HOST_TASK(void * parameters)
                             }
 			    else if(protocol_handler.payload_buffer[0]==INST_SAVECALIBRATION)
 			    {
+				state = STATE_CALIBRATION;
                                 // compute calibration offsets
                                 s16 servoOffsets[12] {0};
                                 for(size_t index=0; index<12; ++ index)
