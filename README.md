@@ -3,9 +3,9 @@
 
 Mini Pupper will make robotics easier for schools, homeschool families, enthusiasts and beyond.
 
-- ROS: support ROS2(Humble) SLAM&Navigation robot dog at low-cost price
+- ROS: support ROS2(Humble) SLAM & Navigation robot dog at low-cost price
 - OpenCV: support OpenCV official OAK-D-Lite 3D camera module and MIPI camera
-- Open-source: DIY and custom what you want.
+- Open-source: DIY and customize what you want.
 - Raspberry Pi: it’s super expandable, endorsed by Raspberry Pi.
 
 ## Overview
