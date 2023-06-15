@@ -108,7 +108,7 @@ void HOST_TASK(void * parameters)
                             {
 				if(state == STATE_CALIBRATION)
 				{
-				     state = STATE_IDLE
+				     state = STATE_IDLE;
 				}
                                 // decode parameters
                                 memcpy(&host->prot_parameters,&protocol_handler.payload_buffer[1],sizeof(parameters_control_instruction_format));
