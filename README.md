@@ -15,7 +15,7 @@ This repository is the BSP(board support package) for Mini Pupper 2.
 ## Prepare installation
 
 ### Flash Ubuntu preinstalled image to the SD card. 
-- Download `ubuntu-22.04.2-preinstalled-desktop-arm64+raspi.img.xz` from [the official website](https://ubuntu.com/download/raspberry-pi), and flash it into your SD card.
+- Download `ubuntu-22.04.2-preinstalled-server-arm64+raspi.img.xz` from [the official website](https://ubuntu.com/download/raspberry-pi), and flash it into your SD card.
 - Put SD card into your Mini Pupper and setup your WiFi in "/etc/netplan/50-cloud-init.yaml", you can reference to [50-cloud-init.yaml](https://drive.google.com/file/d/1DN7Aa9jz5LgkGvuYcwuXQgHud_CjnDRJ/view?usp=sharing) (Please use your AP name to update "Mangdang", and password to update "mangdang" )
 ```
 sudo vi /etc/netplan/50-cloud-init.yaml
