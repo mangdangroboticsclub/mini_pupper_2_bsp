@@ -28,7 +28,7 @@ The IMU is positioned "upside down" on the main board, the application must corr
 
 Make sure there is no HDMI calbe connect Mini Pupper and Run:
 
-./audio_test.sh
+./audio_test.py
 
 you have 5 seconds to record your voice, after that the recording will be replayed.
 For the detailed info, please see the script code.
