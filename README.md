@@ -1,11 +1,11 @@
-# Mini Pupper: Quadrpated Robot Platform for Creativity
+# Mini Pupper: Quadruped Robot Platform for Creativity
 [MangDang](https://www.mangdang.net/) Online channel: [Discord](https://discord.gg/xJdt3dHBVw), [FaceBook](https://www.facebook.com/groups/716473723088464), [YouTube](https://www.youtube.com/channel/UCqHWYGXmnoO7VWHmENje3ug/featured), [Twitter](https://twitter.com/LeggedRobot)
 
 Mini Pupper will make robotics easier for schools, homeschool families, enthusiasts and beyond.
 
-- ROS: support ROS2(Humble) SLAM&Navigation robot dog at low-cost price
+- ROS: support ROS2(Humble) SLAM & Navigation robot dog at low-cost price
 - OpenCV: support OpenCV official OAK-D-Lite 3D camera module and MIPI camera
-- Open-source: DIY and custom what you want.
+- Open-source: DIY and customize what you want.
 - Raspberry Pi: it’s super expandable, endorsed by Raspberry Pi.
 
 ## Overview
