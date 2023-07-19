@@ -4,7 +4,7 @@
 
 Run:
 
-./hapic-demo.py
+./haptic-demo.py
 
 You can now move the front right leg and the other legs will follow. Note that some legs will move in the oposite direction due to the oriantation of the servos. Correcting this is left as an excercise for the user.
 
