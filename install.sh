@@ -6,6 +6,7 @@ set -e
 BASEDIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 ### Write release file
+echo BUILD_DATE=\"$(date)\" > ~/mini-pupper-release
 echo HARDWARE=\"$(python3 $BASEDIR/Python_Module/MangDang/mini_pupper/capabilities.py)\" > ~/mini-pupper-release
 echo MACHINE=\"$(uname -m)\" >> ~/mini-pupper-release
 if [ -f /boot/firmware/user-data ]
