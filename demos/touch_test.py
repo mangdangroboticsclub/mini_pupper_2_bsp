@@ -41,6 +41,17 @@ while True:
     touchValue_Back  = GPIO.input(touchPin_Back)
     touchValue_Left  = GPIO.input(touchPin_Left)
     touchValue_Right = GPIO.input(touchPin_Right)
+    display_sting = ''
+    if not touchValue_Front:
+        display_sting += ' Front'
+    if not touchValue_Back:
+        display_sting += ' Back'
+    if not touchValue_Right:
+        display_sting += ' Right'
+    if not touchValue_Left:
+        display_sting += ' Left'
 
-    print("Touch Detect Front, Back, Right, Left: %d, %d, %d, %d" %(touchValue_Front, touchValue_Back, touchValue_Right, touchValue_Left))
+    if display_sting == '':
+        display_sting = 'No button touched'
+    print(display_sting)
     time.sleep(0.5)
