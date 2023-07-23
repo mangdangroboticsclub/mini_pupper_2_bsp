@@ -273,6 +273,16 @@ extern "C" void app_main(void)
             }
             break;
 
+        case STATE_CALIBRATION:
+            // Mini pupper is saving calibration.
+            // IMU is working.
+            // SERVO are powered OFF.
+            {
+                // force SERVO power disable
+                servo.enable_power(false);
+            }
+            break;
+
         case STATE_SITTING_DOWN:
             // Mini pupper sit down in a few seconds.
             // IMU is working. 
