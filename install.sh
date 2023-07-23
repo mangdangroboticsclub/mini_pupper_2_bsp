@@ -49,7 +49,7 @@ grep -q "mini_pupper_v2" /etc/hosts || echo "127.0.0.1	mini_pupper_v2" | sudo te
 ### upgrade Ubuntu and install required packages
 echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections
 sudo sed -i "s/# deb-src/deb-src/g" /etc/apt/sources.list
-#sudo apt update
+sudo apt update
 #sudo apt -y upgrade
 sudo apt install -y i2c-tools dpkg-dev curl python-is-python3 mpg321 python3-tk openssh-server screen alsa-utils libportaudio2 libsndfile1
 sudo sed -i "s/pulse/alsa/" /etc/libao.conf
