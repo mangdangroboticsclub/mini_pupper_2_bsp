@@ -30,6 +30,9 @@ cd ~/mini_pupper_2_bsp/RPiCamera  # To RPiCamera directory
 ```
 
 ```bash
+# https://askubuntu.com/questions/1346874/failed-to-check-for-processor-microcode-upgrades-at-the-end-of-apt-get-how-ca
+# fix failed-to-check-for-processor-microcode-upgrades
+sudo apt-get purge needrestart
 . install.sh  # Set camera configurations
 reboot
 ```
