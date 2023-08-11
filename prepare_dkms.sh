@@ -15,4 +15,4 @@ sudo cp dkms.conf /usr/src/rpi-i2s-audio-1.0/
 
 sudo dkms add -m rpi-i2s-audio -v 1.0
 sudo dkms build -m rpi-i2s-audio -v 1.0
-sudo dkms install -m rpi-i2s-audio -v 1.0
+sudo dkms install -m rpi-i2s-audio -v 1.0 --all
