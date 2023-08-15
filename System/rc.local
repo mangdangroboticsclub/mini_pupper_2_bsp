@@ -3,6 +3,14 @@
 # Copyright (c) 2020, MangDang Technology Co., Limited
 #
 
+# update kernel modules if required and reboot
+# this covers the case where the kernel is updated before our install script run
+if ! $(dkms status | grep -q $(uname -r))
+then
+    sudo /usr/sbin/dkms autoinstall --verbose --kernelver  $(uname -r)
+    sudo reboot
+fi
+
 # set cpu performance
 echo performance > /sys/bus/cpu/devices/cpu0/cpufreq/scaling_governor
 
