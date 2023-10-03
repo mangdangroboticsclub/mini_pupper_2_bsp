@@ -53,7 +53,7 @@ If you are interested in understanding this development style a bit further,
 we follow the [GitHub Flow](https://docs.github.com/en/get-started/quickstart/github-flow)
 model of branching.
 
-## Guildlines for Development
+## Guidelines for Development
 
 ### License
 
