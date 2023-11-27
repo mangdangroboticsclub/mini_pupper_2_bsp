@@ -1,6 +1,7 @@
 /* Authors : 
  * - Hdumcke
  * - Pat92fr
+ * - Afreez
  */
 
 #include "mini_pupper_servos.h"
@@ -59,6 +60,34 @@ static StaticTask_t task_buffer;
 
 void SERVO::start()
 {
+    // configure SPI device (IMU) on the other side of the bus
+
+    spi_device_interface_config_t dev_cfg = {
+        .command_bits = 0,
+        .address_bits = 0,
+        .dummy_bits = 0,
+        .mode = 0,
+        .duty_cycle_pos = 128,
+        .cs_ena_pretrans = 0,
+        .cs_ena_posttrans = 0,
+        .clock_speed_hz = 12 * 1000000, // 12MHz (15MHz max)
+        .input_delay_ns = 0,
+        .flags = 0,
+        .queue_size = 2,
+        .pre_cb = 0,
+        .post_cb = 0};
+
+    dev_cfg.spics_io_num = SPI_MASTER_CS0;
+    ESP_ERROR_CHECK(spi_bus_add_device(SPI_MASTER_ID, &dev_cfg, &spi_device_left_front));
+    dev_cfg.spics_io_num = SPI_MASTER_CS1;
+    ESP_ERROR_CHECK(spi_bus_add_device(SPI_MASTER_ID, &dev_cfg, &spi_device_right_front));
+    dev_cfg.spics_io_num = SPI_MASTER_CS2;
+    ESP_ERROR_CHECK(spi_bus_add_device(SPI_MASTER_ID, &dev_cfg, &spi_device_left_rear));
+    dev_cfg.spics_io_num = SPI_MASTER_CS3;
+    ESP_ERROR_CHECK(spi_bus_add_device(SPI_MASTER_ID, &dev_cfg, &spi_device_right_rear));
+
+    ESP_LOGI(TAG, "SPI device initialized successfully");
+
     /*** ASYNC API service ***/
     _task_handle = xTaskCreateStaticPinnedToCore(
         SERVO_TASK,   
@@ -68,8 +97,48 @@ void SERVO::start()
         SERVO_PRIORITY,     
         stack,
         &task_buffer,
-        SERVO_CORE
-    );
+        SERVO_CORE);
+}
+
+uint8_t SERVO::spi_read_write_bytes(uint8_t device, uint8_t size, uint8_t tx_buffer[], uint8_t rx_buffer[])
+{
+    uint8_t res = 0;
+    spi_transaction_t t;
+    memset(&t, 0, sizeof(t));
+    t.flags = 0;
+    t.user = nullptr;
+    t.cmd = 0;
+    t.length = size * 8;
+    t.tx_buffer = tx_buffer;
+    t.rx_buffer = rx_buffer;
+
+    switch (device)
+    {
+    case 0:
+    {
+        res = spi_device_transmit(spi_device_right_front, &t);
+    }
+    break;
+    case 1:
+    {
+        res = spi_device_transmit(spi_device_left_front, &t);
+    }
+    break;
+    case 2:
+    {
+        res = spi_device_transmit(spi_device_right_rear, &t);
+    }
+    break;
+    case 3:
+    {
+        res = spi_device_transmit(spi_device_left_rear, &t);
+    }
+    break;
+
+    default:
+        break;
+    }
+    return res;
 }
 
 bool SERVO::is_power_enabled() const
@@ -553,7 +622,7 @@ void SERVO::setTorqueAsync(u8 servoID, u8 servoTorque)
     enable_service();
 }
 
-void SERVO::setTorque12Async(u8 const servoTorques[])
+void SERVO::setTorque12Async(u16 const servoTorques[])
 {
     for(size_t index=0;index<12;++index)
         state[index].torque_enable = servoTorques[index];
@@ -614,6 +683,12 @@ void SERVO::getLoad12Async(s16 servoLoads[])
 
     for(size_t index=0;index<12;++index)
         servoLoads[index] = state[index].present_load;
+}
+
+void SERVO::getPreCur12Async(s16 servoLoads[])
+{   
+    for (size_t index = 0; index < 12; ++index)
+        servoLoads[index] = state[index].present_current;
 }
 
 u16  SERVO::getPositionAsync(u8 servoID)
@@ -721,6 +796,7 @@ void SERVO::enable_service(bool enable)
 
 void SERVO::sync_all_goal_position()
 {
+#if (SERVOS_BUS_MODE == SERVOS_BY_UART)
     static size_t const buffer_size {64};               // Buffer size
     static u8 buffer[buffer_size] {0xFF,0xFF,0xFE};     // Fixed header (boradcast)
     /*
@@ -757,7 +833,7 @@ void SERVO::sync_all_goal_position()
             chk_sum += buffer[chk_index];
         }
         buffer[index++] = ~chk_sum;
-        // send frame to all servo    
+        // send frame to all servo
         uart_write_bytes(uart_port_num,buffer,index);
     }
     /*
@@ -794,10 +870,89 @@ void SERVO::sync_all_goal_position()
             chk_sum += buffer[chk_index];
         }
         buffer[index++] = ~chk_sum;
-        // send frame to all servo    
+        // send frame to all servo
         uart_write_bytes(uart_port_num,buffer,index);
+#endif // end if(SERVOS_BUS_MODE == SERVOS_BY_UART)
+
+#if (SERVOS_BUS_MODE == SERVOS_BY_SPI)
+        static host_SMS_t host_SMS;
+        static u8 send_buffer_spi[sizeof(host_SMS_t)], read_buffer_spi[sizeof(host_SMS_t)];
+        // Build package header 4 Bytes
+        send_buffer_spi[0] = (host_SMS.start >> 8) & 0xff;
+        send_buffer_spi[1] = (host_SMS.start) & 0xff;
+        send_buffer_spi[2] = (host_SMS.mode >> 8) & 0xff;
+        send_buffer_spi[3] = (host_SMS.mode) & 0xff;
+
+        u16 chk_sum_spi{0};
+
+        host_SMS.start = START_FIELD;
+        host_SMS.mode = MODE_FIELD;
+		
+		// Build one package to one AT32 board each time, total 4 AT32 boards
+        for (size_t i = 0; i < 4; i++)
+        {
+            /* cmd */
+            host_SMS.servo1_cmd.mode = 0x01 ;//pos and toreue ctrl  //state[0 + 3 * i].torque_enable;
+            host_SMS.servo1_cmd.position = 1800 - calibrated_to_raw_position(state[0 + 3 * i].goal_position, state[0 + 3 * i].calibration_offset) * 1800 / 1024; //(0-1023) -> (0-1800)
+            if(state[0 + 3 * i].torque_enable > 1)
+            {
+                host_SMS.servo1_cmd.torque = state[0 + 3 * i].torque_enable; //use torque ->speed
+            }
+            else
+            {
+                host_SMS.servo1_cmd.torque = state[0 + 3 * i].goal_speed;  //use default
+            }
+
+            host_SMS.servo2_cmd.mode = 0x01 ;//pos and toreue ctrl //state[1 + 3 * i].torque_enable;
+            host_SMS.servo2_cmd.position = 1800 - calibrated_to_raw_position(state[1 + 3 * i].goal_position, state[1 + 3 * i].calibration_offset) * 1800 / 1024; //(0-1023) -> (0-1800)
+            //host_SMS.servo2_cmd.torque = state[1 + 3 * i].goal_speed;
+            if(state[1 + 3 * i].torque_enable > 1)
+            {
+                host_SMS.servo2_cmd.torque = state[1 + 3 * i].torque_enable; //use torque ->speed
+            }
+            else
+            {
+                host_SMS.servo2_cmd.torque = state[1 + 3 * i].goal_speed;  //use default
+            }
+
+            host_SMS.servo3_cmd.mode = 0x01 ;//pos and toreue ctrl //state[2 + 3 * i].torque_enable;
+            host_SMS.servo3_cmd.position = 1800 - calibrated_to_raw_position(state[2 + 3 * i].goal_position, state[2 + 3 * i].calibration_offset) * 1800 / 1024; //(0-1023) -> (0-1800)
+            //host_SMS.servo3_cmd.torque = state[2 + 3 * i].goal_speed;
+            if(state[2 + 3 * i].torque_enable > 1)
+            {
+                host_SMS.servo3_cmd.torque = state[2 + 3 * i].torque_enable; //use torque ->speed
+            }
+            else
+            {
+                host_SMS.servo3_cmd.torque = state[2 + 3 * i].goal_speed;  //use default
+                
+            }
+
+            // transmit
+            memcpy(send_buffer_spi, &host_SMS.start, sizeof(host_SMS_t));
+            if (ESP_OK == spi_read_write_bytes(i, sizeof(host_SMS_t), send_buffer_spi, read_buffer_spi))
+            {
+
+                /* feedback */
+                SMS_host_t *servos_feed = (SMS_host_t *)read_buffer_spi;
+                state[0 + 3 * i].present_position = servos_feed->servo1_feed.position * 1024 / 1800; // 1024-
+                state[0 + 3 * i].present_current = servos_feed->servo1_feed.torque;
+
+                state[1 + 3 * i].present_position = servos_feed->servo2_feed.position * 1024 / 1800;
+                state[1 + 3 * i].present_current = servos_feed->servo2_feed.torque;
+
+                state[2 + 3 * i].present_position = servos_feed->servo3_feed.position * 1024 / 1800;
+                state[2 + 3 * i].present_current = servos_feed->servo3_feed.torque;
+
+            }
+            else
+            {
+                f_monitor.update(mini_pupper::frame_error_rate_monitor::TIME_OUT_ERROR);
+            }
+        }
+
+#endif // end if(SERVOS_BUS_MODE == SERVOS_BY_SPI)
     }
-}
 
 void SERVO::cmd_feedback_one_servo(SERVO_STATE & servoState)
 {
@@ -903,8 +1058,9 @@ void SERVO_TASK(void * parameters)
     u8 servoID {0};
     for(;;)
     {
-        if(servo->_is_power_enabled && servo->_is_service_enabled)
-        {
+		if(servo->_is_power_enabled && servo->_is_service_enabled)
+        {			
+#if (SERVOS_BUS_MODE == SERVOS_BY_UART)
             // process read ack from one servo
             servo->ack_feedback_one_servo(servo->state[servoID]);
             // sync write setpoint to all servo
@@ -913,11 +1069,14 @@ void SERVO_TASK(void * parameters)
             servoID = (servoID+1)%12;
             // read one servo feedback
             servo->cmd_feedback_one_servo(servo->state[servoID]);
-
-            // stats
-            servo->p_monitor.update();
-
-        }
+#endif
+#if (SERVOS_BUS_MODE == SERVOS_BY_SPI)
+			// sync write setpoint and feedback all servo
+			servo->sync_all_goal_position();
+#endif
+			// stats
+			servo->p_monitor.update();
+		}
         // delay 1ms
         // - about 1KHz refresh frequency for sync write servo setpoints
         // - about 80Hz refresh frequency for read/ack servo feedbacks

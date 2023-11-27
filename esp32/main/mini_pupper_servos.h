@@ -1,6 +1,7 @@
 /* Authors : 
  * - Hdumcke
  * - Pat92fr
+ * - Afreez
  */
 #ifndef _mini_pupper_servos_H
 #define _mini_pupper_servos_H
@@ -75,6 +76,14 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
+#define SERVOS_BY_UART 1
+#define SERVOS_BY_SPI 0
+
+#define SERVOS_BUS_MODE SERVOS_BY_SPI
+
+#if(SERVOS_BUS_MODE == SERVOS_BY_SPI)
+#include "driver/spi_master.h"
+#endif
 /* IMPORTANT : Mini Pupper Servo API requires to setup FreeRTOS frequency at 1000Hz.
  *             Use IDF ESP32 : MENUCONFIG > COMPONENTS > FREERTOS > KERNEL > 1000Hz
  *
@@ -149,14 +158,24 @@
 #define SERVO_PRESENT_CURRENT_L 69
 #define SERVO_PRESENT_CURRENT_H 70
 
+// 
+#define SPI_MASTER_ID SPI2_HOST
+#define SPI_MASTER_CS0 10
+#define SPI_MASTER_CS1 9
+#define SPI_MASTER_CS2 14
+#define SPI_MASTER_CS3 21
 
 struct SERVO_STATE
 {
     SERVO_STATE(u8 id) : ID(id) {}
     u8 ID                   {0};
-    u8 torque_enable        {0};   // torque disable
+    u16 torque_enable        {0};   // torque disable
     u16 goal_position       {512}; // middle position
-    u16 goal_speed          {1000}; // max
+#if(SERVOS_BUS_MODE == SERVOS_BY_SPI)
+    u16 goal_speed{150};   // max
+#else
+    u16 goal_speed{1000};   // max
+#endif
     u16 present_position    {0};
     s16 present_speed       {0};
     s16 present_load        {0};
@@ -168,7 +187,51 @@ struct SERVO_STATE
     s16 calibration_offset  {0}; // default offset
 };
 
-enum {
+
+#define START_FIELD 0xA5A5
+#define MODE_FIELD 0x0001
+
+#pragma pack(1)
+typedef struct
+{
+    u16 mode;
+    u16 position;
+    u16 torque;
+    u16 kp;
+    u16 kd;
+} servo_cmd_sub_t;
+
+typedef struct
+{
+    u16 start;
+    u16 mode;
+    servo_cmd_sub_t servo1_cmd;
+    servo_cmd_sub_t servo2_cmd;
+    servo_cmd_sub_t servo3_cmd;
+    u16 check_sum;
+} host_SMS_t;
+
+typedef struct
+{
+    u16 status;
+    u16 position;
+    s16 torque;
+    u32 res;
+} servo_feedback_sub_t;
+
+typedef struct
+{
+    u16 start;
+    u16 status;
+    servo_feedback_sub_t servo1_feed;
+    servo_feedback_sub_t servo2_feed;
+    servo_feedback_sub_t servo3_feed;
+    u16 check_sum;
+} SMS_host_t;
+#pragma pack()
+
+enum
+{
     SERVO_STATUS_OK = 0,
     SERVO_STATUS_FAIL,
 };
@@ -179,6 +242,10 @@ struct SERVO
 {
     SERVO();
 
+    spi_device_handle_t spi_device_left_front;
+    spi_device_handle_t spi_device_right_front;
+    spi_device_handle_t spi_device_left_rear;
+    spi_device_handle_t spi_device_right_rear;
     /* Power distribution API
      *
      */
@@ -233,7 +300,7 @@ struct SERVO
     void enable_service(bool enable = true);
 
     void setTorqueAsync(u8 servoID, u8 servoTorque);
-    void setTorque12Async(u8 const servoTorques[]);
+    void setTorque12Async(u16 const servoTorques[]);
 
     void setPositionAsync(u8 servoID, u16 servoPosition);
     void setPosition12Async(u16 const servoPositions[]);    
@@ -251,6 +318,7 @@ struct SERVO
     void getPosition12Async(u16 servoPositions[]);    
     void getSpeed12Async(s16 servoSpeeds[]);    
     void getLoad12Async(s16 servoLoads[]);    
+    void getPreCur12Async(s16 servoLoads[]);
 
     // calibration helpers
     u16 raw_to_calibrated_position(u16 raw_position, s16 calibration_offset) const;
@@ -302,6 +370,8 @@ protected:
     int check_reply_frame_no_parameter(u8 & ID);
 
     int uart_port_num {1};
+
+    uint8_t spi_read_write_bytes(uint8_t device, uint8_t size, uint8_t tx_buffer[], uint8_t rx_buffer[]);
 };
 
 extern SERVO servo;

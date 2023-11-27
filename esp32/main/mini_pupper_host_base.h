@@ -1,6 +1,7 @@
 /* Authors : 
  * - Hdumcke
  * - Pat92fr
+ * - Afreez
  */
 
 #ifndef _mini_pupper_host_base_H
@@ -60,7 +61,7 @@
 // frame parameters format for control instruction
 struct parameters_control_instruction_format
 {
-    u8 torque_enable[12];
+    u16 torque_enable[12];
     u16 goal_position[12];
 };
 
@@ -80,6 +81,7 @@ struct parameters_control_acknowledge_format
     // POWER SUPPLY data
     float voltage_V;
     float current_A;
+    s16 present_current[12];
 };
 
 

@@ -1,6 +1,7 @@
 /* Authors : 
  * - Hdumcke
  * - Pat92fr
+ * - Afreez
  */
 
 #include <freertos/FreeRTOS.h>
@@ -54,6 +55,26 @@ static void initialize_nvs(void)
     ESP_ERROR_CHECK(err);
 }
 
+#define SPI_MASTER_ID SPI2_HOST
+#define SPI_MASTER_MISO 13
+#define SPI_MASTER_MOSI 11
+#define SPI_MASTER_CLK 12
+#define SPI_MASTER_CS 38
+#define SPI_MASTER_SERVO_CS 39
+
+static void initialize_spi_host_bus(void)
+{
+    spi_bus_config_t bus_cfg = {
+        .mosi_io_num = SPI_MASTER_MOSI,
+        .miso_io_num = SPI_MASTER_MISO,
+        .sclk_io_num = SPI_MASTER_CLK,
+        .quadwp_io_num = -1,
+        .quadhd_io_num = -1,
+        .max_transfer_sz = 128};
+    ESP_ERROR_CHECK(spi_bus_initialize(SPI_MASTER_ID, &bus_cfg, SPI_DMA_CH_AUTO));
+    ESP_LOGI(TAG, "SPI host initialized successfully");
+}
+
 e_mini_pupper_state state {STATE_IDLE};
 
 extern "C" void app_main(void)
@@ -91,6 +112,8 @@ extern "C" void app_main(void)
 
     // start CLI early
     ESP_ERROR_CHECK(esp_console_start_repl(repl));
+    
+    initialize_spi_host_bus();
 
     // init IMU device
     uint8_t const imu_status = imu.init();
@@ -154,8 +177,8 @@ extern "C" void app_main(void)
     float const low_voltage_threshold_V {6.2}; // V
     float const normal_voltage_threshold_V {6.6}; // V
     int64_t last_time = esp_timer_get_time();
-    u8 const servoTorquesOFF[12] {0};
-    u8 const servoTorquesON[12] {1,1,1,1,1,1,1,1,1,1,1,1};
+    u16 const servoTorquesOFF[12] {0};
+    u16 const servoTorquesON[12] {1,1,1,1,1,1,1,1,1,1,1,1};
     for(;;)
     {
         // slow down this background task (100Hz refresh rate)
@@ -257,7 +280,7 @@ extern "C" void app_main(void)
                 if(POWER::get_voltage_V()<low_voltage_threshold_V && low_voltage_cutoff_counter>0)
                 {
                     --low_voltage_cutoff_counter;
-                    ESP_LOGI(TAG, "Warning : Low-voltage!");            
+                    ESP_LOGI(TAG, "Warning : Low-voltage! %.2fV ", POWER::get_voltage_V());
                 }
                 if(POWER::get_voltage_V()>normal_voltage_threshold_V && low_voltage_cutoff_counter!=0 && low_voltage_cutoff_counter<low_voltage_cutoff_counter_max)
                 {

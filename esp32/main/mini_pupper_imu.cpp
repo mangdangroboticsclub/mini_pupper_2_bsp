@@ -1,6 +1,7 @@
 /* Authors : 
  * - Hdumcke
  * - Pat92fr
+ * - Afreez
  */
 
 #include "mini_pupper_imu.h"
@@ -122,37 +123,35 @@ _task_handle(NULL)
   ESP_ERROR_CHECK(i2c_driver_install(I2C_NUM_0, conf.mode, I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0));
   ESP_LOGI(TAG, "I2C initialized successfully");
 #else
-    // start SPI host
-    spi_bus_config_t bus_cfg = {
-      .mosi_io_num=SPI_MASTER_MOSI,
-      .miso_io_num=SPI_MASTER_MISO,
-      .sclk_io_num=SPI_MASTER_CLK,
-      .quadwp_io_num = -1,
-      .quadhd_io_num = -1,
-      .max_transfer_sz = 128
-    };
-    ESP_ERROR_CHECK(spi_bus_initialize(SPI_MASTER_ID, &bus_cfg, SPI_DMA_CH_AUTO));
-    ESP_LOGI(TAG, "SPI host initialized successfully");
+  // // start SPI host
+  // spi_bus_config_t bus_cfg = {
+  //     .mosi_io_num = SPI_MASTER_MOSI,
+  //     .miso_io_num = SPI_MASTER_MISO,
+  //     .sclk_io_num = SPI_MASTER_CLK,
+  //     .quadwp_io_num = -1,
+  //     .quadhd_io_num = -1,
+  //     .max_transfer_sz = 128};
+  // ESP_ERROR_CHECK(spi_bus_initialize(SPI_MASTER_ID, &bus_cfg, SPI_DMA_CH_AUTO));
+  // ESP_LOGI(TAG, "SPI host initialized successfully");
 
-    // configure SPI device (IMU) on the other side of the bus
-    spi_device_interface_config_t dev_cfg = {
-        .command_bits=0,
-        .address_bits=8,
-        .dummy_bits=0,
-        .mode=0,                                
-        .duty_cycle_pos=128,
-        .cs_ena_pretrans=0,
-        .cs_ena_posttrans=0,
-        .clock_speed_hz=12*1000000, // 12MHz (15MHz max)
-        .input_delay_ns = 0,
-        .spics_io_num=SPI_MASTER_CS,            
-        .flags = 0,
-        .queue_size=2,
-        .pre_cb = 0,
-        .post_cb = 0
-    };
-    ESP_ERROR_CHECK(spi_bus_add_device(SPI_MASTER_ID, &dev_cfg, &_spi_device_handle));
-    ESP_LOGI(TAG, "SPI device initialized successfully");
+  // // configure SPI device (IMU) on the other side of the bus
+  // spi_device_interface_config_t dev_cfg = {
+  //     .command_bits = 0,
+  //     .address_bits = 8,
+  //     .dummy_bits = 0,
+  //     .mode = 0,
+  //     .duty_cycle_pos = 128,
+  //     .cs_ena_pretrans = 0,
+  //     .cs_ena_posttrans = 0,
+  //     .clock_speed_hz = 12 * 1000000, // 12MHz (15MHz max)
+  //     .input_delay_ns = 0,
+  //     .spics_io_num = SPI_MASTER_CS,
+  //     .flags = 0,
+  //     .queue_size = 2,
+  //     .pre_cb = 0,
+  //     .post_cb = 0};
+  // ESP_ERROR_CHECK(spi_bus_add_device(SPI_MASTER_ID, &dev_cfg, &_spi_device_handle));
+  // ESP_LOGI(TAG, "SPI device initialized successfully");
 
 #endif
   // GPIO #39 configuration (IMU :: INT2)  
@@ -171,8 +170,27 @@ struct imu_configuration
 
 uint8_t IMU::init()
 {
-  ESP_LOGI(TAG, "chip identifier: %02xh",(int)who_am_i());
-  ESP_LOGI(TAG, "chip revision: %02xh",(int)revision());
+  // configure SPI device (IMU) on the other side of the bus
+  spi_device_interface_config_t dev_cfg = {
+      .command_bits = 0,
+      .address_bits = 8,
+      .dummy_bits = 0,
+      .mode = 0,
+      .duty_cycle_pos = 128,
+      .cs_ena_pretrans = 0,
+      .cs_ena_posttrans = 0,
+      .clock_speed_hz = 12 * 1000000, // 12MHz (15MHz max)
+      .input_delay_ns = 0,
+      .spics_io_num = SPI_MASTER_CS,
+      .flags = 0,
+      .queue_size = 2,
+      .pre_cb = 0,
+      .post_cb = 0};
+  ESP_ERROR_CHECK(spi_bus_add_device(SPI_MASTER_ID, &dev_cfg, &_spi_device_handle));
+  ESP_LOGI(TAG, "SPI device initialized successfully");
+  
+  ESP_LOGI(TAG, "chip identifier: %02xh", (int)who_am_i());
+  ESP_LOGI(TAG, "chip revision: %02xh", (int)revision());
 
   imu_configuration const configuration[] = {
     {QMI8658C_ACC_GYRO_CTRL1_SPI_REG, 0b01100000 }, // 0b01100000 address auto increment +  read data little endian + sensor enable
