@@ -349,8 +349,8 @@ int main(int argc, char *argv[])
     /* This is the main loop for handling connections. */
 
     int data_socket {0};
-    u8 r_buffer[38];
-    u8 s_buffer[38];
+    u8 r_buffer[sizeof(parameters_control_instruction_format)+2];
+    u8 s_buffer[sizeof(parameters_control_instruction_format)+2];
     for (;;) {
 
         /* Wait for incoming connection. */
@@ -409,6 +409,12 @@ int main(int argc, char *argv[])
                     s_buffer[0]= 2 + 2*sizeof(float);
                     s_buffer[1]= INST_GETPOWER;
                     memcpy(&s_buffer[2], (char*)control_block + offset, 2*sizeof(float));
+                }
+		        offset += 2*sizeof(float);
+                if(r_buffer[1] == INST_GETTORQUE && r_buffer[0] == 2) {
+                    s_buffer[0]= 2 + 12*sizeof(s16);
+                    s_buffer[1]= INST_GETTORQUE;
+                    memcpy(&s_buffer[2], (char*)control_block + offset, 12*sizeof(s16));
                 }
 
                 /* Send result. */

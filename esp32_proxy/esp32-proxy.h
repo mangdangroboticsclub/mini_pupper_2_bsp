@@ -12,5 +12,6 @@
 #define INST_GETLOAD 0x03
 #define INST_GETIMU 0x04
 #define INST_GETPOWER 0x05
+#define INST_GETTORQUE 0x06
 
 #endif //_esp32_proxy__H

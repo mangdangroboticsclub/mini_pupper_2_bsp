@@ -27,7 +27,7 @@ class ESP32Interface:
 
     def servos_set_position_torque(self, positions, torque):
         try:
-            self.sock.sendall(pack("BB12B12H", 38, 1, *torque, *positions))
+            self.sock.sendall(pack("BB12H12H", 38, 1, *torque, *positions))
             data = self.sock.recv(2)
         except Exception as e:
             if e.errno == errno.EPIPE or e.errno == errno.ENOTCONN or e.errno == errno.EBADF:
@@ -75,6 +75,27 @@ class ESP32Interface:
 
         positions = list(unpack("12H", data[2:]))
         return positions
+
+    def servos_get_torque(self):
+        try:
+            self.sock.sendall(pack("BB", 2, 6))
+            data = self.sock.recv(26)
+        except Exception as e:
+            if e.errno == errno.EPIPE or e.errno == errno.ENOTCONN or e.errno == errno.EBADF:
+                self.close()
+                self.connect()
+            else:
+                print("%s" % e)
+                return None
+
+        if data[0:2] != pack("BB", 26, 6):
+            print("Invalid Ack")
+            self.close()
+            return None
+
+        positions = list(unpack("12h", data[2:]))
+        return positions
+
 
     def servos_get_load(self):
         try:

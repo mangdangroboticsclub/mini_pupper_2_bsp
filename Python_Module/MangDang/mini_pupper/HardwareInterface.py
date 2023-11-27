@@ -7,8 +7,8 @@ class HardwareInterface:
         self.pwm_params = PWMParams()
         self.servo_params = ServoParams()
 
-    def set_actuator_postions(self, joint_angles):
-        send_servo_commands(self.pwm_params, self.servo_params, joint_angles)
+    def set_actuator_postions(self, joint_angles, torque):
+        send_servo_commands(self.pwm_params, self.servo_params, joint_angles, torque)
 
     def set_actuator_position(self, joint_angle, axis, leg):
         send_servo_command(self.pwm_params, self.servo_params, joint_angle, axis, leg)
@@ -45,7 +45,7 @@ def angle_to_servo_position(angle, pwm_params, servo_params, axis_index, leg_ind
     return int(servo_position_f)
 
 
-def send_servo_commands(pwm_params, servo_params, joint_angles):
+def send_servo_commands(pwm_params, servo_params, joint_angles, torque):
     positions = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     for leg_index in range(4):
         for axis_index in range(3):
@@ -57,7 +57,7 @@ def send_servo_commands(pwm_params, servo_params, joint_angles):
                 leg_index,
             )
             positions[pwm_params.servo_ids[axis_index, leg_index] - 1] = servo_position
-    pwm_params.esp32.servos_set_position(positions)
+    pwm_params.esp32.servos_set_position_torque(positions, torque)
 
 
 def send_servo_command(pwm_params, servo_params, joint_angle, axis, leg):
