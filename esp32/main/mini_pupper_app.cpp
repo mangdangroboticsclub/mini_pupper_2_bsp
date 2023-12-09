@@ -197,6 +197,8 @@ extern "C" void app_main(void)
             {
                 // force SERVO power disable
                 servo.enable_power(false);
+                // Need add this delay otherwise the servos will shake at the boot up
+                vTaskDelay(10 / portTICK_PERIOD_MS);
 
                 // force HOST service disable
                 host.enable_service(false);
@@ -218,7 +220,7 @@ extern "C" void app_main(void)
                     // set goal position equal to present position
                     u16 servoPositions[12] {0};
                     servo.getPosition12Async(servoPositions);   
-                    servo.setPosition12Async(servoPositions);
+                    //servo.setPosition12Async(servoPositions);
                     // set torque enable
                     servo.setTorque12Async(servoTorquesON);  
                     // reset cut-off 
@@ -242,10 +244,17 @@ extern "C" void app_main(void)
                 u16 const speed = 2;
                 for(auto & position : servoPositions)
                 {
-                    if(position<512)
-                        position += speed;
-                    else if(position>512)
-                        position -= speed;
+                    if(abs(position-512)>speed)
+					{
+						if(position<512)
+							position += speed;
+						else if(position>512)
+							position -= speed;
+					}
+                    else
+                    {
+                        position = 512;
+                    }
                 }
                 servo.setPosition12Async(servoPositions);
                 servo.setTorque12Async(servoTorquesON);   

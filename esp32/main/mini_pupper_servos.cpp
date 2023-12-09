@@ -883,7 +883,7 @@ void SERVO::sync_all_goal_position()
         send_buffer_spi[2] = (host_SMS.mode >> 8) & 0xff;
         send_buffer_spi[3] = (host_SMS.mode) & 0xff;
 
-        u16 chk_sum_spi{0};
+        //u16 chk_sum_spi{0};
 
         host_SMS.start = START_FIELD;
         host_SMS.mode = MODE_FIELD;
@@ -927,7 +927,6 @@ void SERVO::sync_all_goal_position()
                 host_SMS.servo3_cmd.torque = state[2 + 3 * i].goal_speed;  //use default
                 
             }
-
             // transmit
             memcpy(send_buffer_spi, &host_SMS.start, sizeof(host_SMS_t));
             if (ESP_OK == spi_read_write_bytes(i, sizeof(host_SMS_t), send_buffer_spi, read_buffer_spi))
@@ -1055,7 +1054,9 @@ void SERVO::ack_feedback_one_servo(SERVO_STATE & servoState)
 void SERVO_TASK(void * parameters)
 {
     SERVO * servo = reinterpret_cast<SERVO*>(parameters);
+#if (SERVOS_BUS_MODE == SERVOS_BY_UART)
     u8 servoID {0};
+#endif        
     for(;;)
     {
 		if(servo->_is_power_enabled && servo->_is_service_enabled)
