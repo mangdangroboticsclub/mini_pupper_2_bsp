@@ -18,7 +18,7 @@ To build the project:
 
 ```
 cd ~
-git clone https://github.com/mangdangroboticsclub/mini_pupper_2_bsp.git mini_pupper_bsp
+git clone https://github.com/mangdangroboticsclub/mini_pupper_2_bsp.git mini_pupper_2pro_bsp
 cd ~/mini_pupper_bsp/esp32
 idf.py set-target esp32s3
 idf.py menuconfig # you can use all default values
