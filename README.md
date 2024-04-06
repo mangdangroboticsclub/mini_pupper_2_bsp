@@ -57,7 +57,7 @@ https://github.com/mangdangroboticsclub/mini_pupper_2_bsp/tree/main/demos
 
 ## License
 
-Copyright 2023 [MangDang](https://www.mangdang.net/)
+Copyright 2024 [MangDang](https://www.mangdang.net/)
 
 Apache-2.0 license
 
@@ -71,6 +71,4 @@ https://github.com/mangdangroboticsclub/mini_pupper_2_bsp/blob/main/CONTRIBUTING
 All the source code are licensed under Apache-2.0 license, but NOT include the below modules.
 
 ### GPL source code in this repository
-* [EEPROM](./EEPROM)
 * [FuelGauge](./FuelGauge)
-* [PWMController](./PWMController)
