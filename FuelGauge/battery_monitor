@@ -13,7 +13,11 @@ def main():
             continue
         current_voltage=power_status['volt']
         # Servos will be disabled by ESP32 when power is low
-        if current_voltage <= 6.20:
+        # The threshold value: 
+        #      4.2 is for Raspberry Pi 4B USB typeC adapter.
+        #      4.5 is for Raspberry Pi 5 USB typeC adapter.
+        #      6.2 is for our battery adapter.
+        if current_voltage <= 4.20:
             subprocess.run(['/home/ubuntu/mini_pupper_bsp/FuelGauge/play-low-power-sound.sh'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             disp = Display()
             disp.show_state(BehaviorState.LOWBATTERY)
