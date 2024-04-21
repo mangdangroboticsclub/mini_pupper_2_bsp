@@ -1,13 +1,14 @@
 from MangDang.mini_pupper.Config import ServoParams, PWMParams
 import numpy as np
 
+DEFAULT_TORQUE = [500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500]
 
 class HardwareInterface:
     def __init__(self):
         self.pwm_params = PWMParams()
         self.servo_params = ServoParams()
 
-    def set_actuator_postions(self, joint_angles, torque):
+    def set_actuator_postions(self, joint_angles, torque=DEFAULT_TORQUE):
         send_servo_commands(self.pwm_params, self.servo_params, joint_angles, torque)
 
     def set_actuator_position(self, joint_angle, axis, leg):
