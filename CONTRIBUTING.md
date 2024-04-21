@@ -57,7 +57,7 @@ model of branching.
 
 ### License
 
-mini_pupper_2_bsp is licensed under the Apache 2.0 License, and thus all contributions will be licensed as such
+Mini Pupper project is licensed under the Apache 2.0 License, and thus all contributions will be licensed as such
 as per clause 5 of the Apache 2.0 License:
 
 ~~~

@@ -10,12 +10,12 @@ Mini Pupper will make robotics easier for schools, homeschool families, enthusia
 
 ## Overview
 
-This repository is the BSP(board support package) for Mini Pupper 2.
+This repository is the BSP(board support package) for Mini Pupper 2Pro.
 
 ## Prepare installation
 
 ### Flash Ubuntu preinstalled image to the SD card. 
-- Download `ubuntu-22.04.2-preinstalled-server-arm64+raspi.img.xz` from [the official website](https://ubuntu.com/download/raspberry-pi), and flash it into your SD card.
+- Download `ubuntu-22.04.4-preinstalled-server-arm64+raspi.img.xz` from [the official website](https://ubuntu.com/download/raspberry-pi) or [here](https://drive.google.com/drive/folders/1M1Lj__5MXCfPN6Hq8VnQOyHQCQQG81J6?usp=sharing), and flash it into your SD card.
 - Put SD card into your Mini Pupper and setup your WiFi in "/etc/netplan/50-cloud-init.yaml", you can reference to [50-cloud-init.yaml](https://drive.google.com/file/d/1DN7Aa9jz5LgkGvuYcwuXQgHud_CjnDRJ/view?usp=sharing) (Please use your AP name to update "Mangdang", and password to update "mangdang" )
 ```
 sudo vi /etc/netplan/50-cloud-init.yaml
@@ -35,7 +35,7 @@ reboot
 Clone this repo and install: 
 ```
 cd ~
-git clone https://github.com/mangdangroboticsclub/mini_pupper_2_bsp.git mini_pupper_bsp
+git clone https://github.com/mangdangroboticsclub/mini_pupper_2_bsp.git -b mini_pupper_2pro_bsp mini_pupper_bsp
 cd mini_pupper_bsp
 ./install.sh
 reboot
@@ -52,12 +52,12 @@ calibrate  # this is a command
 ## Test
 
 You can test the demos to confirm your installation, for the detailed info, please refer to the below link,
-https://github.com/mangdangroboticsclub/mini_pupper_2_bsp/tree/main/demos
+https://github.com/mangdangroboticsclub/mini_pupper_2_bsp/tree/mini_pupper_2pro_bsp/demos
 
 
 ## License
 
-Copyright 2023 [MangDang](https://www.mangdang.net/)
+Copyright 2024 [MangDang](https://www.mangdang.net/)
 
 Apache-2.0 license
 
@@ -71,6 +71,4 @@ https://github.com/mangdangroboticsclub/mini_pupper_2_bsp/blob/main/CONTRIBUTING
 All the source code are licensed under Apache-2.0 license, but NOT include the below modules.
 
 ### GPL source code in this repository
-* [EEPROM](./EEPROM)
 * [FuelGauge](./FuelGauge)
-* [PWMController](./PWMController)
