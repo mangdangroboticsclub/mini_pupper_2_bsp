@@ -20,7 +20,8 @@ class ServoParams:
         self.neutral_angle_degrees = NEUTRAL_ANGLE_DEGREES
 
         self.servo_multipliers = np.array(
-            [[1, 1, -1, -1], [-1, 1, -1, 1], [-1, 1, -1, 1]]
+            #[[1, 1, -1, -1], [-1, 1, -1, 1], [-1, 1, -1, 1]]
+            [[1, 1, -1, -1], [-1, 1, 1, -1], [-1, 1, 1, -1]]
         )
 
     @property
