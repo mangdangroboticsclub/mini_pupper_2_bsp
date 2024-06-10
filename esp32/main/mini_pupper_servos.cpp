@@ -36,7 +36,7 @@ SERVO::SERVO()
 
     // set UART port
     uart_config_t uart_config;
-    uart_config.baud_rate = 500000;
+    uart_config.baud_rate = 1000000;
     uart_config.data_bits = UART_DATA_8_BITS;
     uart_config.parity = UART_PARITY_DISABLE;
     uart_config.stop_bits = UART_STOP_BITS_1;
@@ -782,8 +782,12 @@ void SERVO::sync_all_goal_position()
                 buffer[index++] = servo.ID;                    // Parameter 3 = Servo Number
                 // apply calibration
                 u16 const raw_position {calibrated_to_raw_position(servo.goal_position,servo.calibration_offset)};
-                buffer[index++] = (raw_position>>8);    
-                buffer[index++] = (raw_position&0xff);                
+                //buffer[index++] = (raw_position>>8);
+                //buffer[index++] = (raw_position&0xff);
+                u16 position4096resol = raw_position;
+				position4096resol = position4096resol<<2;
+                buffer[index++] =   (position4096resol&0xff);
+                buffer[index++] = (position4096resol>>8);
             }
         }
         // compute payload length

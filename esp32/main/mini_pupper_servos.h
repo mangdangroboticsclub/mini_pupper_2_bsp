@@ -157,7 +157,7 @@ struct SERVO_STATE
     u8 torque_enable        {0};   // torque disable
     u16 goal_position       {512}; // middle position
     u16 goal_speed          {1000}; // max
-    u16 present_position    {0};
+    u16 present_position    {512};
     s16 present_speed       {0};
     s16 present_load        {0};
     u8 present_voltage      {0};
