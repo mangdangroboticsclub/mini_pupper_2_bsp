@@ -47,6 +47,8 @@ time.sleep(1)
 
 # Play audio
 print("Mini Pupper 2 audio playback start...")
-sd.play(record, fs)
+sd.play(record[:, 0], fs)
+sd.wait()  # Wait for playback to finish
+sd.play(record[:, 1], fs)
 sd.wait()  # Wait for playback to finish
 print("Mini Pupper 2 audio playback end.")
