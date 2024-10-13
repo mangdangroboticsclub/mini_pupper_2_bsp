@@ -26,10 +26,7 @@ Remember to handle the ribbon cable and connector carefully to avoid damage, and
 ## Step2: Install the camera driver and configure Raspberry Pi on Mini Pupper 
 
 ```bash
-cd ~/mini_pupper_2_bsp/RPiCamera  # To RPiCamera directory
-```
-
-```bash
+cd ~/mini_pupper_bsp/RPiCamera  # To RPiCamera directory
 . install.sh  # Set camera configurations
 reboot
 ```
