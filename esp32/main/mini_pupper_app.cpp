@@ -157,7 +157,7 @@ extern "C" void app_main(void)
 	//     4.5 is good for official Raspberry Pi5 USB typeC adapter.
 	//     6.2 is good for our battery adapter.
     float const low_voltage_threshold_V {4.0}; // V
-    float const normal_voltage_threshold_V {4.2}; // V
+    float const normal_voltage_threshold_V {4.0}; // V
     int64_t last_time = esp_timer_get_time();
     u8 const servoTorquesOFF[12] {0};
     u8 const servoTorquesON[12] {1,1,1,1,1,1,1,1,1,1,1,1};
