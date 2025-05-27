@@ -20,7 +20,7 @@
 static bool const print_debug     {false};
 static bool const print_debug_max {false};
 
-static char const * filename {"/dev/ttyAMA2"};
+static char const * filename {"/dev/ttyHS1"};
 
 static char const * version = PROJECT_VER;
 
@@ -92,6 +92,7 @@ void esp32_protocol(setpoint_and_feedback_data * control_block)
     options.c_iflag &= ~(INLCR | IGNCR | ICRNL | IXON | IXOFF); // IGNPAR ?
     options.c_oflag &= ~(ONLCR | OCRNL);
     options.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+    options.c_cflag &= ~CRTSCTS;
 
     // Set up timeouts: Calls to read() will return as soon as there is
     // at least one byte available or when 100 ms has passed.
