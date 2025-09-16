@@ -49,9 +49,9 @@ SERVO::SERVO()
     uart_config.source_clk = UART_SCLK_XTAL;
 #endif
     uart_port_num = UART_NUM_1;
-    ESP_ERROR_CHECK(uart_driver_install(uart_port_num, 1024, 1024, 0, NULL, 0));
-    ESP_ERROR_CHECK(uart_param_config(uart_port_num, &uart_config));
-    ESP_ERROR_CHECK(uart_set_pin(uart_port_num, 4, 5, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+    ESP_ERROR_CHECK(uart_driver_install((uart_port_t)uart_port_num, 1024, 1024, 0, NULL, 0));
+    ESP_ERROR_CHECK(uart_param_config((uart_port_t)uart_port_num, &uart_config));
+    ESP_ERROR_CHECK(uart_set_pin((uart_port_t)uart_port_num, 4, 5, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 }
 
 static size_t const stack_size = 10000;
@@ -578,7 +578,7 @@ void SERVO::set_position_all(u16 const servoPositions[])
     }
     buffer[index++] = ~chk_sum;
     // send frame to uart
-    uart_write_bytes(uart_port_num, buffer, buffer_size);
+    uart_write_bytes((uart_port_t)uart_port_num, buffer, buffer_size);
 }
 
 int SERVO::setID(u8 servoID, u8 newID)
@@ -791,7 +791,7 @@ void SERVO::enable_service(bool enable)
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
     // flush RX FIFO
-    uart_flush(uart_port_num);    
+    uart_flush((uart_port_t)uart_port_num);
 }
 
 void SERVO::sync_all_goal_position()
@@ -834,7 +834,7 @@ void SERVO::sync_all_goal_position()
         }
         buffer[index++] = ~chk_sum;
         // send frame to all servo
-        uart_write_bytes(uart_port_num,buffer,index);
+        uart_write_bytes((uart_port_t)uart_port_num,buffer,index);
     }
     /*
      * Second sync write frame : goal position
@@ -871,7 +871,7 @@ void SERVO::sync_all_goal_position()
         }
         buffer[index++] = ~chk_sum;
         // send frame to all servo
-        uart_write_bytes(uart_port_num,buffer,index);
+        uart_write_bytes((uart_port_t)uart_port_num,buffer,index);
 #endif // end if(SERVOS_BUS_MODE == SERVOS_BY_UART)
 
 #if (SERVOS_BUS_MODE == SERVOS_BY_SPI)
@@ -974,9 +974,9 @@ void SERVO::cmd_feedback_one_servo(SERVO_STATE & servoState)
     }
     buffer[buffer_size-1] = ~chk_sum;
     // send frame to servo
-    uart_write_bytes(uart_port_num,buffer,buffer_size);
+    uart_write_bytes((uart_port_t)uart_port_num,buffer,buffer_size);
     // flush RX FIFO
-    uart_flush(uart_port_num);
+    uart_flush((uart_port_t)uart_port_num);
 }
 
 void SERVO::ack_feedback_one_servo(SERVO_STATE & servoState)
@@ -985,7 +985,7 @@ void SERVO::ack_feedback_one_servo(SERVO_STATE & servoState)
     static size_t const buffer_size {12};     
     u8 buffer[buffer_size] {0};
     // copy RX fifo into local buffer
-    int const read_length = uart_read_bytes(uart_port_num,buffer,buffer_size,1);
+    int const read_length = uart_read_bytes((uart_port_t)uart_port_num,buffer,buffer_size,1);
     // check expected frame size
     if(read_length==buffer_size)
     {
@@ -1048,7 +1048,7 @@ void SERVO::ack_feedback_one_servo(SERVO_STATE & servoState)
         f_monitor.update(mini_pupper::frame_error_rate_monitor::TIME_OUT_ERROR);
     }    
     // flush RX FIFO
-    uart_flush(uart_port_num); 
+    uart_flush((uart_port_t)uart_port_num);
 }
 
 void SERVO_TASK(void * parameters)
@@ -1086,10 +1086,10 @@ void SERVO_TASK(void * parameters)
     }
 }
 
-int SERVO::write_frame(u8 ID, u8 instruction, u8 const * parameters, size_t parameter_length)
+int SERVO::write_frame(u8 ID, u8 instruction, u8 const * parameters, u8 parameter_length)
 {
     // prepare frame to one servo
-    size_t const length {parameter_length+2};       // Length : instruction + params + checksum
+    size_t const length {(size_t)parameter_length+2};       // Length : instruction + params + checksum
     size_t const buffer_size {2+1+1+length};        // 0xFF 0xFF ID LENGTH (INSTR PARAM... CHK)    
     u8 buffer[buffer_size] {
         0xFF,                                       // Start of Frame
@@ -1121,9 +1121,9 @@ int SERVO::write_frame(u8 ID, u8 instruction, u8 const * parameters, size_t para
     }
     buffer[buffer_size-1] = ~chk_sum;
     // flush RX FIFO
-    uart_flush(uart_port_num);  
+    uart_flush((uart_port_t)uart_port_num);
     // send frame to servo
-    uart_write_bytes(uart_port_num,buffer,buffer_size);
+    uart_write_bytes((uart_port_t)uart_port_num,buffer,buffer_size);
 
     return SERVO_STATUS_OK;
 }
@@ -1136,9 +1136,9 @@ int SERVO::reply_frame(u8 & ID, u8 & state, u8 * parameters, size_t parameter_le
     size_t const buffer_size {2+1+1+length};        // 0xFF 0xFF ID LENGTH (STATE PARAM... CHK)    
     u8 buffer[buffer_size] {0};
     // copy RX fifo into local buffer
-    int const read_length = uart_read_bytes(uart_port_num,buffer,buffer_size,timeout);
+    int const read_length = uart_read_bytes((uart_port_t)uart_port_num,buffer,buffer_size,timeout);
     // flush RX FIFO
-    uart_flush(uart_port_num);    
+    uart_flush((uart_port_t)uart_port_num);
     // check expected frame size
     ///printf("   buffer_size:%d read_length:%d.",buffer_size,read_length);
     if(read_length!=buffer_size) return SERVO_STATUS_FAIL;

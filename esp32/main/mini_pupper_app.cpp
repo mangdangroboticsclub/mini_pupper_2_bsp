@@ -174,8 +174,8 @@ extern "C" void app_main(void)
     ESP_LOGI(TAG, "STATE_IDLE.");
     int const low_voltage_cutoff_counter_max {60}; // 1 minute
     int low_voltage_cutoff_counter {low_voltage_cutoff_counter_max}; 
-    float const low_voltage_threshold_V {6.2}; // V
-    float const normal_voltage_threshold_V {6.6}; // V
+    float const low_voltage_threshold_V {4.0}; // V
+    float const normal_voltage_threshold_V {4.0}; // V
     int64_t last_time = esp_timer_get_time();
     u16 const servoTorquesOFF[12] {0};
     u16 const servoTorquesON[12] {1,1,1,1,1,1,1,1,1,1,1,1};
