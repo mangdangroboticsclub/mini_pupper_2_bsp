@@ -43,9 +43,9 @@ f_monitor(_protocol_handler.f_monitor)
     uart_config.flow_ctrl = UART_HW_FLOWCTRL_DISABLE;
     uart_config.rx_flow_ctrl_thresh = 0;
     uart_config.source_clk = UART_SCLK_DEFAULT;
-    ESP_ERROR_CHECK(uart_param_config(_uart_port_num, &uart_config));
-    ESP_ERROR_CHECK(uart_set_pin(_uart_port_num, HOST_SERVER_TXD, HOST_SERVER_RXD, HOST_SERVER_RTS, HOST_SERVER_CTS));
-    ESP_ERROR_CHECK(uart_driver_install(_uart_port_num, 1024, 1024, 40, &_uart_queue, 0));
+    ESP_ERROR_CHECK(uart_param_config((uart_port_t)_uart_port_num, &uart_config));
+    ESP_ERROR_CHECK(uart_set_pin((uart_port_t)_uart_port_num, HOST_SERVER_TXD, HOST_SERVER_RXD, HOST_SERVER_RTS, HOST_SERVER_CTS));
+    ESP_ERROR_CHECK(uart_driver_install((uart_port_t)_uart_port_num, 1024, 1024, 40, &_uart_queue, 0));
 }
 
 static size_t const stack_size = 10000;
@@ -94,7 +94,7 @@ void HOST_TASK(void * parameters)
                     ESP_LOGD(TAG, "RX uart event size: %d", event.size);
 
                     // read a frame from host
-                    int const read_length {uart_read_bytes(host->_uart_port_num,rx_buffer,event.size,portMAX_DELAY)};
+                    int const read_length {uart_read_bytes((uart_port_t)(host->_uart_port_num),rx_buffer,event.size,portMAX_DELAY)};
 
                     // decode received data
                     bool have_to_reply {false};
@@ -216,7 +216,7 @@ void HOST_TASK(void * parameters)
                         tx_buffer[tx_buffer_size-1] = compute_checksum(tx_buffer);
 
                         // send frame to host
-                        uart_write_bytes(host->_uart_port_num,tx_buffer,tx_buffer_size);
+                        uart_write_bytes((uart_port_t)(host->_uart_port_num),tx_buffer,tx_buffer_size);
 
                         // Wait for packet to be sent
                         //ESP_ERROR_CHECK(uart_wait_tx_done(host->_uart_port_num, 10)); // wait timeout is 10 RTOS ticks (TickType_t)
@@ -234,7 +234,7 @@ void HOST_TASK(void * parameters)
                 // If fifo overflow happened, you should consider adding flow control for your application.
                 // The ISR has already reset the rx FIFO,
                 // As an example, we directly flush the rx buffer here in order to read more data.
-                uart_flush_input(host->_uart_port_num);
+                uart_flush_input((uart_port_t)(host->_uart_port_num));
                 xQueueReset(host->_uart_queue);
                 break;
 
@@ -243,7 +243,7 @@ void HOST_TASK(void * parameters)
                 ESP_LOGI(TAG, "ring buffer full");
                 // If buffer full happened, you should consider encreasing your buffer size
                 // As an example, we directly flush the rx buffer here in order to read more data.
-                uart_flush_input(host->_uart_port_num);
+                uart_flush_input((uart_port_t)(host->_uart_port_num));
                 xQueueReset(host->_uart_queue);
                 break;
 
