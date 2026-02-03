@@ -1,8 +1,15 @@
 import numpy as np
+from numpy.linalg import solve
 from MangDang.mini_pupper.ServoCalibration import MICROS_PER_RAD, NEUTRAL_ANGLE_DEGREES
 from MangDang.mini_pupper.HardwareConfig import PS4_COLOR, PS4_DEACTIVATED_COLOR
 from MangDang.mini_pupper.ESP32Interface import ESP32Interface
 from enum import Enum
+
+# ============ 全局角度限制开关 ============
+# 设置为 True 启用角度限制保护，False 关闭限制（危险！）
+# 此设置影响所有使用 Joint_checker 的程序
+ENABLE_JOINT_LIMITS = True
+# =========================================
 
 # TODO: put these somewhere else
 class PWMParams:

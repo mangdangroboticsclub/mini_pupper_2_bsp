@@ -7,3 +7,4 @@ then
     sudo rm /boot/firmware/reconfigure
     sudo reboot
 fi
+/home/ubuntu/StanfordQuadruped/configure_network.sh
