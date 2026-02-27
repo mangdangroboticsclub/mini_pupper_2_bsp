@@ -1,14 +1,85 @@
 from MangDang.mini_pupper.Config import ServoParams, PWMParams
 import numpy as np
+import math
+
+class JointChecker:
+    """
+    Joint angle limiter, implicitly called by HardwareInterface when ENABLE_JOINT_LIMITS is set to True. Checks that the desired joint angles are within the limits specified in min/max, then clip
+    Future implementation: can dynamic contraints for velocity/acceleration
+    """
+    def __init__(self):
+        self.cnt_c1 = 0 
+        self.cnt_c2 = 0 
+        self.cnt_c3 = 0 
+        self._joint_max_lim_deg = np.array([
+            [55, -55, 55, -55],  # Motor1: abduction
+            [-108, -108, -108, -108],  # Motor2: Hip
+            [-134, -134, -134, -134],  # Motor3: Knee
+        ])
+        self._joint_min_lim_deg = np.array([
+            [-35, 35, -35, 35],  # Motor1: abduction
+            [180, 180, 180, 180],  # Motor2: Hip
+            [55, 55, 55, 55],  # Motor3: Knee
+        ])
+        self._joint_max_lim = np.deg2rad(self._joint_max_lim_deg)
+        self._joint_min_lim = np.deg2rad(self._joint_min_lim_deg)
+        self.upper_bound = np.maximum(self.joint_max_lim, self.joint_min_lim)
+        self.lower_bound = np.minimum(self.joint_max_lim, self.joint_min_lim)
+
+    def check_limit(self, joint_angles):
+        """
+        Check and make sure the joint angles are within limit specified.
+        
+        """
+        # Constraints 1: Static constraints of each motor range
+        clipped_angles = np.clip(joint_angles, self.lower_bound, self.upper_bound) 
+        n_clipped_motor = np.sum(clipped_angles != joint_angles)
+        self.cnt_c1 += n_clipped_motor
+
+        # Constraints 2: Dynamic coupling of Motor 2 and 3 (Motor 2 max <= Motor 3 + 194°)
+        motor2_angles = clipped_angles[1, :] # Use the already clipped angles as the base
+        motor3_angles = clipped_angles[2, :]
+        motor2_max = motor3_angles + np.deg2rad(194)
+        clipped_angles_c2 = np.minimum(motor2_angles, motor2_max)
+        # Count additional clipping from constraint 2 before updating
+        self.cnt_c2 += np.sum(clipped_angles_c2 != clipped_angles[1, :])
+        clipped_angles[1, :] = clipped_angles_c2  # Update clipped_angles, assuming constraint 2 is smaller than constraint 1
+
+        # Constraints 3: Dynamic coupling of Motor 2 and 3 (Motor 3 max <= Motor 2 + 3°)
+        motor3_max = motor2_angles + np.deg2rad(3)
+        clipped_angles_c3 = np.minimum(motor3_angles, motor3_max)
+        # Count additional clipping from constraint 3 before updating
+        self.cnt_c3 += np.sum(clipped_angles_c3 != clipped_angles[2, :])
+        clipped_angles[2, :] = clipped_angles_c3  # Update clipped_angles, assuming constraint 3 is smaller than constraint 1
+
+        print(f"Clipped times: {self.cnt_c1}, {self.cnt_c2}, {self.cnt_c3}")
+        print(np.degrees(clipped_angles))
+        return clipped_angles
+
+    @property
+    def joint_max_lim(self):
+        return self._joint_max_lim
+    @property
+    def joint_min_lim(self):
+        return self._joint_min_lim
 
 
 class HardwareInterface:
-    def __init__(self):
+    def __init__(self, joint_checker_flag=True):
         self.pwm_params = PWMParams()
         self.servo_params = ServoParams()
+        self.ENABLE_JOINT_LIMITS = joint_checker_flag
+        if self.ENABLE_JOINT_LIMITS:
+            print("Joint limits initialized.")
+            self.joint_checker = JointChecker()
+        else:
+            print("Joint limits not initialized.")
 
     def set_actuator_postions(self, joint_angles):
-        send_servo_commands(self.pwm_params, self.servo_params, joint_angles)
+        if self.ENABLE_JOINT_LIMITS:
+            send_servo_commands(self.pwm_params, self.servo_params, self.joint_checker.check_limit(joint_angles))
+        else:
+            send_servo_commands(self.pwm_params, self.servo_params, joint_angles)
 
     def set_actuator_position(self, joint_angle, axis, leg):
         send_servo_command(self.pwm_params, self.servo_params, joint_angle, axis, leg)
