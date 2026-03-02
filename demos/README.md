@@ -41,3 +41,17 @@ https://github.com/mangdangroboticsclub/mini_pupper_2_bsp/tree/main/RPiCamera
 After that, run:
 
 ./camera_ffplay_test.py
+
+## Test: Joint Limit
+
+The `test_joint_limit.py` script is provided to exercise and validate the
+configured joint limits.
+
+- It automatically sweeps each joint on all four legs, including beyond the
+	nominal limits.
+- During the sweep it records the servo load for each motor.
+- The collected data can be used to tune joint limits and to evaluate servo
+	performance near the limits.
+
+This test is useful both for verifying that the software joint limits behave as
+expected and as a diagnostic tool to spot overloaded or weak servos.
