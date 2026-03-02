@@ -55,21 +55,6 @@ class JointChecker:
         #print(np.degrees(clipped_angles))
         return clipped_angles
 
-    def check_limit_single(self, joint_angle, axis_index, leg_index):
-        """Apply only the static limit for a single joint.
-
-        This uses the precomputed lower/upper bounds without any
-        dynamic coupling. Intended for APIs that command one joint
-        at a time.
-        """
-        return float(
-            np.clip(
-                joint_angle,
-                self.lower_bound[axis_index, leg_index],
-                self.upper_bound[axis_index, leg_index],
-            )
-        )
-
     @property
     def joint_max_lim(self):
         return self._joint_max_lim
