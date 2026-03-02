@@ -29,7 +29,6 @@ class JointChecker:
     def check_limit(self, joint_angles):
         """
         Check and make sure the joint angles are within limit specified.
-        
         """
         # Constraints 1: Static constraints of each motor range
         clipped_angles = np.clip(joint_angles, self.lower_bound, self.upper_bound) 
@@ -56,6 +55,21 @@ class JointChecker:
         #print(np.degrees(clipped_angles))
         return clipped_angles
 
+    def check_limit_single(self, joint_angle, axis_index, leg_index):
+        """Apply only the static limit for a single joint.
+
+        This uses the precomputed lower/upper bounds without any
+        dynamic coupling. Intended for APIs that command one joint
+        at a time.
+        """
+        return float(
+            np.clip(
+                joint_angle,
+                self.lower_bound[axis_index, leg_index],
+                self.upper_bound[axis_index, leg_index],
+            )
+        )
+
     @property
     def joint_max_lim(self):
         return self._joint_max_lim
@@ -65,6 +79,14 @@ class JointChecker:
 
 
 class HardwareInterface:
+    """Hardware layer for commanding servo joints.
+
+    By default, joint limits are enabled and all multi-joint commands
+    are passed through JointChecker to enforce static and dynamic
+    constraints. Single-joint commands are provided as a lower-level
+    interface and do not perform any safety checks.
+    """
+
     def __init__(self, joint_checker_flag=True):
         self.pwm_params = PWMParams()
         self.servo_params = ServoParams()
@@ -76,13 +98,26 @@ class HardwareInterface:
             print("Joint limits not initialized.")
 
     def set_actuator_postions(self, joint_angles):
+        """Set all joint angles (3x4) for the four legs.
+
+        When ENABLE_JOINT_LIMITS is True, the joint_angles matrix is
+        first passed through JointChecker.check_limit().
+        This is the recommended, safety-aware API.
+        """
         if self.ENABLE_JOINT_LIMITS:
             send_servo_commands(self.pwm_params, self.servo_params, self.joint_checker.check_limit(joint_angles))
         else:
             send_servo_commands(self.pwm_params, self.servo_params, joint_angles)
 
     def set_actuator_position(self, joint_angle, axis, leg):
+        """Command a single joint on a single leg with no limit checks.
+
+        This API bypasses JointChecker and does not enforce static or dynamic joint constraints. 
+        It should only be used for advanced tasks such as calibration or debugging.
+        For normal operation, prefer set_actuator_postions().
+        """
         send_servo_command(self.pwm_params, self.servo_params, joint_angle, axis, leg)
+
 
 
 def angle_to_position(angle, servo_params, axis_index, leg_index):
