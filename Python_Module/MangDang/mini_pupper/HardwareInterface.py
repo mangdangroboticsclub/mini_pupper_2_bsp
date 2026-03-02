@@ -52,8 +52,8 @@ class JointChecker:
         self.cnt_c3 += np.sum(clipped_angles_c3 != clipped_angles[2, :])
         clipped_angles[2, :] = clipped_angles_c3  # Update clipped_angles, assuming constraint 3 is smaller than constraint 1
 
-        print(f"Clipped times: {self.cnt_c1}, {self.cnt_c2}, {self.cnt_c3}")
-        print(np.degrees(clipped_angles))
+        #print(f"Clipped times: {self.cnt_c1}, {self.cnt_c2}, {self.cnt_c3}")
+        #print(np.degrees(clipped_angles))
         return clipped_angles
 
     @property
