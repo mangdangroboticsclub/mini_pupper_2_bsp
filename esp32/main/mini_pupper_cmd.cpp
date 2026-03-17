@@ -322,33 +322,27 @@ static void register_mini_pupper_cmd_calibrate_clear(void)
 
 static int mini_pupper_cmd_getCalibrate(int argc, char **argv)
 {
-    (void)argc;
-    (void)argv;
-
-
     FILE *fp = fopen(CALIBRATE_PATH, "r");
     if (!fp) {
         ESP_LOGI(TAG, "Calibration file %s not found", CALIBRATE_PATH);
         return 0;
     }
     ESP_LOGI(TAG, "Calibration offsets (from file %s):", CALIBRATE_PATH);
-    if(fp){
-            s16 servoOffsets[12] {0};
-            for(size_t index=0; index<12; ++ index)
-            {
-                int data {0};
-                fscanf(fp,"%d\n", &data);
-                servoOffsets[index] = data;
-            }
-            ESP_LOGI(TAG, "Calibration read : %d %d %d %d %d %d %d %d %d %d %d %d",
-                servoOffsets[0],servoOffsets[1],servoOffsets[2],
-                servoOffsets[3],servoOffsets[4],servoOffsets[5],
-                servoOffsets[6],servoOffsets[7],servoOffsets[8],
-                servoOffsets[9],servoOffsets[10],servoOffsets[11]
-            );   
-        }         
+        s16 servoOffsets[12] {0};
+        for(size_t index=0; index<12; ++ index)
+        {
+            s16 data {0};
+            fscanf(fp,"%hd\n", &data);
+            servoOffsets[index] = data;
+        }
+        ESP_LOGI(TAG, "Calibration read : %d %d %d %d %d %d %d %d %d %d %d %d",
+            servoOffsets[0],servoOffsets[1],servoOffsets[2],
+            servoOffsets[3],servoOffsets[4],servoOffsets[5],
+            servoOffsets[6],servoOffsets[7],servoOffsets[8],
+            servoOffsets[9],servoOffsets[10],servoOffsets[11]
+        );   
+        
     fclose(fp);
-
     return 0;
 }
 
