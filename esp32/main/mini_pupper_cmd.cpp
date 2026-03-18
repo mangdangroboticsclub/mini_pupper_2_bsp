@@ -394,26 +394,6 @@ static int mini_pupper_cmd_setCalibrate(int argc, char **argv)
     fclose(fp);
     ESP_LOGI(TAG, "Set calibration for servo %d to position %d", servo_id, offset_val);
 
-    {
-        FILE *fr = fopen(CALIBRATE_PATH, "r");
-        if (fr) {
-            s16 servoOffsets[12] {0};
-            for (size_t index = 0; index < 12; ++index) {
-                int data = 0;
-                fscanf(fr, "%d\n", &data);
-                servoOffsets[index] = (s16)data;
-            }
-            ESP_LOGI(TAG, "setCalibrate Verification： Data at /data/calib.txt: %d %d %d %d %d %d %d %d %d %d %d %d",
-                servoOffsets[0],servoOffsets[1],servoOffsets[2],
-                servoOffsets[3],servoOffsets[4],servoOffsets[5],
-                servoOffsets[6],servoOffsets[7],servoOffsets[8],
-                servoOffsets[9],servoOffsets[10],servoOffsets[11]
-            );
-            fclose(fr);
-        } else {
-            ESP_LOGI(TAG, "Set calibration written but verification read failed (%s)", CALIBRATE_PATH);
-        }
-    }
     return 0;
 
 
@@ -471,25 +451,6 @@ static int mini_pupper_cmd_setCalibrate12(int argc, char **argv)
     offsets[4], offsets[5], offsets[6], offsets[7],
     offsets[8], offsets[9], offsets[10], offsets[11]);
     
-
-    {
-        s16 servoOffsets[12] {0};
-        FILE *fr = fopen(CALIBRATE_PATH, "r");
-        if (fr) {
-            for (size_t index = 0; index < 12; ++index) {
-                int data = 0;
-                fscanf(fr, "%d\n", &data);
-                servoOffsets[index] = (s16)data;
-            }
-            ESP_LOGI(TAG, "setCalibrate12 Verification： Data at /data/calib.txt: %d %d %d %d %d %d %d %d %d %d %d %d",
-                servoOffsets[0], servoOffsets[1], servoOffsets[2], servoOffsets[3],
-                servoOffsets[4], servoOffsets[5], servoOffsets[6], servoOffsets[7],
-                servoOffsets[8], servoOffsets[9], servoOffsets[10], servoOffsets[11]);
-            fclose(fr);
-        } else {
-            ESP_LOGI(TAG, "Set calibration written but verification read failed (%s)", CALIBRATE_PATH);
-        }
-    }
     return 0;
 
 
