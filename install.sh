@@ -70,6 +70,24 @@ if [ "$UBUNTU_CODENAME" == "noble" ]; then
     echo "Optimizing package versions for Ubuntu 24.04 (Noble)..."
     sudo apt-get clean
     sudo apt-get install -fy || true
+
+    # Noble images may have security-updated library versions that conflict with
+    # base-repo package constraints (e.g., bzip2 <-> libbz2-1.0).
+    check_and_fix() {
+        local pkg=$1
+        local target=$2
+        local current=$(dpkg-query -W -f='${Version}' "$pkg" 2>/dev/null || echo "")
+
+        if [ -n "$current" ] && [ "$current" != "$target" ]; then
+            echo "Adjusting $pkg: $current -> $target"
+            sudo apt-get install --allow-downgrades -y "$pkg=$target" || true
+        fi
+    }
+
+    BZ2_VER="1.0.8-5.1"
+    ZLIB_VER="1:1.3.dfsg-3.1ubuntu2"
+    check_and_fix "libbz2-1.0" "$BZ2_VER"
+    check_and_fix "zlib1g" "$ZLIB_VER"
 fi
 
 #sudo apt update
@@ -96,12 +114,18 @@ if ! dpkg -l | grep -q "linux-headers-${KERNEL_VERSION}"; then
 fi
 
 ### Install system components
-$BASEDIR/prepare_dkms.sh
+if [ "$UBUNTU_CODENAME" != "noble" ]; then
+    $BASEDIR/prepare_dkms.sh
+else
+    echo "Skipping rpi-i2s-audio DKMS on Ubuntu 24.04 (kernel API incompatible)."
+fi
 if [ "$MACHINE" == "x86_64" ]
 then
-    COMPONENTS=(FuelGauge System esp32_proxy rpi-i2s-audio)
+    COMPONENTS=(FuelGauge System esp32_proxy)
+    [ "$UBUNTU_CODENAME" != "noble" ] && COMPONENTS+=(rpi-i2s-audio)
 else
-    COMPONENTS=(IO_Configuration FuelGauge System esp32_proxy rpi-i2s-audio)
+    COMPONENTS=(IO_Configuration FuelGauge System esp32_proxy)
+    [ "$UBUNTU_CODENAME" != "noble" ] && COMPONENTS+=(rpi-i2s-audio)
 fi
 for dir in ${COMPONENTS[@]}; do
     cd $BASEDIR/$dir
