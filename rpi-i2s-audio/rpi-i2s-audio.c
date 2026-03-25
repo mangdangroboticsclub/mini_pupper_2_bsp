@@ -46,15 +46,45 @@ static struct platform_device snd_rpi_simple_card_device = {
 };
 #else
 /* Kernel 6.8+ - Platform device registration for device tree based simple-card
- * The kernel 6.8+ simple-card driver reads all configuration from device tree,
- * so we only need to register the platform device with a matching driver name.
+ * Create a minimal asoc_simple_card_info compatible structure for 6.8+
  */
+static struct {
+	const char *card;
+	const char *name;
+	const char *codec;
+	const char *platform;
+	unsigned int daifmt;
+	struct {
+		const char *name;
+		unsigned int sysclk;
+	} cpu_dai;
+	struct {
+		const char *name;
+		unsigned int sysclk;
+	} codec_dai;
+} audio_info_68 = {
+	.card = "snd_rpi_simple_card",
+	.name = "simple-card_codec_link",
+	.codec = "snd-soc-dummy",
+	.platform = "fe203000.i2s",
+	.daifmt = SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBS_CFS,
+	.cpu_dai = {
+		.name = "fe203000.i2s",
+		.sysclk = 0
+	},
+	.codec_dai = {
+		.name = "snd-soc-dummy-dai",
+		.sysclk = 0
+	},
+};
+
 static struct platform_device snd_rpi_simple_card_device = {
 	.name = "asoc-simple-card",
 	.id = 0,
 	.num_resources = 0,
 	.dev = {
 		.release = &device_release_callback,
+		.platform_data = &audio_info_68,
 	},
 };
 #endif

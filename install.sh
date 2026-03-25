@@ -114,7 +114,7 @@ if ! dpkg -l | grep -q "linux-headers-${KERNEL_VERSION}"; then
 fi
 
 ### Install system components
-# rpi-i2s-audio is now compatible with kernel 6.8+ via conditional compilation
+# rpi-i2s-audio DKMS is optional; audio playback works with or without Headphones device
 $BASEDIR/prepare_dkms.sh
 if [ "$MACHINE" == "x86_64" ]
 then
