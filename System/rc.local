@@ -5,10 +5,12 @@
 
 # update kernel modules if required and reboot
 # this covers the case where the kernel is updated before our install script run
-if ! $(dkms status | grep -q $(uname -r))
+if ! dkms status | grep -q "$(uname -r)"
 then
-    sudo /usr/sbin/dkms autoinstall --verbose --kernelver  $(uname -r)
-    sudo reboot
+    if sudo /usr/sbin/dkms autoinstall --verbose --kernelver "$(uname -r)"; then
+        sudo /usr/sbin/reboot
+        exit 0
+    fi
 fi
 
 # set cpu performance
