@@ -3,12 +3,7 @@
 set -e
 
 sudo apt update
-
-# Full system upgrade is optional to keep BSP install deterministic and avoid
-# interactive restart flows during provisioning on Ubuntu 24.
-if [ "${MINI_PUPPER_DO_UPGRADE:-0}" = "1" ]; then
-    sudo DEBIAN_FRONTEND=noninteractive apt -y upgrade
-fi
+sudo apt -y upgrade
 
 ### Get directory where this script is installed
 BASEDIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
@@ -62,17 +57,21 @@ if [ -f /etc/apt/sources.list ] && [ -s /etc/apt/sources.list ]; then
     sudo sed -i "s/# deb-src/deb-src/g" /etc/apt/sources.list
 fi
 
-### Detect Ubuntu version once for version-specific install paths
+# Fix package dependency issues for Ubuntu 24.04 (Noble)
+# Some systems may have security-updated versions that conflict with repository versions
+### Detect Ubuntu version
 UBUNTU_CODENAME=$(lsb_release -cs)
 echo "Detected Ubuntu codename: $UBUNTU_CODENAME"
 
 if [ "$UBUNTU_CODENAME" == "noble" ]; then
     echo "Optimizing package versions for Ubuntu 24.04 (Noble)..."
+
+    # 1. Clean and Fix in one go
     sudo apt-get clean
     sudo apt-get install -fy || true
 
-    # Noble images may have security-updated library versions that conflict with
-    # base-repo package constraints (e.g., bzip2 <-> libbz2-1.0).
+    # 2. Use a helper function to check and downgrade only if necessary
+    # 'dpkg-query' is faster and more reliable than 'dpkg -l | grep'
     check_and_fix() {
         local pkg=$1
         local target=$2
@@ -80,24 +79,40 @@ if [ "$UBUNTU_CODENAME" == "noble" ]; then
 
         if [ -n "$current" ] && [ "$current" != "$target" ]; then
             echo "Adjusting $pkg: $current -> $target"
-            sudo apt-get install --allow-downgrades -y "$pkg=$target" || true
+            sudo apt-get install --allow-downgrades -y "$pkg=$target" || return 1
         fi
     }
 
+    # 3. Apply fixes for the specific libraries
+    # Define target versions as variables for easy maintenance
     BZ2_VER="1.0.8-5.1"
     ZLIB_VER="1:1.3.dfsg-3.1ubuntu2"
     check_and_fix "libbz2-1.0" "$BZ2_VER"
     check_and_fix "zlib1g" "$ZLIB_VER"
+
+    # 4. Final installation attempt
+    echo "Installing build dependencies..."
+    if ! sudo apt-get install -y bzip2="$BZ2_VER" zlib1g-dev="$ZLIB_VER"; then
+        echo "Fallback: Installing latest available versions..."
+        sudo apt-get install -y bzip2 zlib1g-dev
+    fi
 fi
 
 #sudo apt update
 #sudo apt -y upgrade
+#sudo apt install -y i2c-tools dpkg-dev curl python-is-python3 mpg321 python3-tk openssh-server screen alsa-utils libportaudio2 libsndfile1
+# Install build tools and Python dependencies first (needed for DKMS and pip installs)
 sudo apt install -y i2c-tools curl python-is-python3 mpg123 python3-tk openssh-server
 sudo apt install -y build-essential python3-pip screen alsa-utils libportaudio2 libsndfile1
-if [ "$UBUNTU_CODENAME" != "noble" ]; then
+
+if [ "$UBUNTU_CODENAME" == "noble" ]; then
+    echo "Ubuntu24"
+else
     [ ! -f "/etc/libao.conf" ] && sudo apt update && sudo apt install -y libao-common libao4
     [ -f "/etc/libao.conf" ] && sudo sed -i "s/pulse/alsa/" /etc/libao.conf
+    #sudo sed -i "s/pulse/alsa/" /etc/libao.conf
 fi
+
 if [ "$UBUNTU_CODENAME" == "jammy" ]; then
     sudo sed -i "s/cards.pcm.front/cards.pcm.default/" /usr/share/alsa/alsa.conf
 fi
@@ -110,17 +125,17 @@ sudo cp -r $BASEDIR/Display /var/lib/mini_pupper_bsp
 KERNEL_VERSION=$(uname -r)
 sudo apt install -y linux-headers-${KERNEL_VERSION} || echo "Warning: Could not install exact kernel headers, trying generic..."
 if ! dpkg -l | grep -q "linux-headers-${KERNEL_VERSION}"; then
+    # Try to install generic raspi headers if exact version not available
     sudo apt install -y linux-headers-raspi || true
 fi
 
 ### Install system components
-# rpi-i2s-audio is now compatible with kernel 6.8+ via conditional compilation
 $BASEDIR/prepare_dkms.sh
 if [ "$MACHINE" == "x86_64" ]
 then
-    COMPONENTS=(FuelGauge System esp32_proxy rpi-i2s-audio)
+    COMPONENTS=(System esp32_proxy rpi-i2s-audio)
 else
-    COMPONENTS=(IO_Configuration FuelGauge System esp32_proxy rpi-i2s-audio)
+    COMPONENTS=(IO_Configuration System esp32_proxy rpi-i2s-audio)
 fi
 for dir in ${COMPONENTS[@]}; do
     cd $BASEDIR/$dir
@@ -137,13 +152,14 @@ fi
 
 cd /tmp
 if [ "$UBUNTU_CODENAME" == "noble" ]; then
-    # Skip pip bootstrap on Noble to avoid conflicts with system-managed pip.
+# Skip pip upgrade to avoid conflicts with system-managed pip
     sudo pip3 install $PIP_BREAK setuptools lgpio
 else
     wget --no-check-certificate https://bootstrap.pypa.io/get-pip.py
     sudo python get-pip.py
     sudo pip install setuptools==58.2.0 # temporary fix https://github.com/mangdangroboticsclub/mini_pupper_ros/pull/45#discussion_r1104759104
 fi
+
 sudo pip install $PIP_BREAK sounddevice soundfile
 
 ### Install Python module
