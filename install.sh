@@ -3,7 +3,12 @@
 set -e
 
 sudo apt update
-sudo apt -y upgrade
+
+# Full system upgrade is optional to keep BSP install deterministic and avoid
+# interactive restart flows during provisioning on Ubuntu 24.
+if [ "${MINI_PUPPER_DO_UPGRADE:-0}" = "1" ]; then
+    sudo DEBIAN_FRONTEND=noninteractive apt -y upgrade
+fi
 
 ### Get directory where this script is installed
 BASEDIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
