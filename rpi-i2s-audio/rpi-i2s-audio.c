@@ -45,14 +45,10 @@ static struct platform_device snd_rpi_simple_card_device = {
 },
 };
 #else
-/* Kernel 6.8+ - Use device tree properties via platform data */
-static struct asoc_simple_priv {
-	struct snd_soc_card scard;
-	struct asoc_simple_dai cpu_dai;
-	struct asoc_simple_dai codec_dai;
-	struct snd_soc_dai_link dai_link;
-} snd_rpi_simple_priv;
-
+/* Kernel 6.8+ - Platform device registration for device tree based simple-card
+ * The kernel 6.8+ simple-card driver reads all configuration from device tree,
+ * so we only need to register the platform device with a matching driver name.
+ */
 static struct platform_device snd_rpi_simple_card_device = {
 	.name = "asoc-simple-card",
 	.id = 0,
