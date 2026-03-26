@@ -127,6 +127,62 @@ for dir in ${COMPONENTS[@]}; do
     ./install.sh
 done
 
+### Configure and start esp32-proxy so Python APIs work right after install
+if [ "$MACHINE" != "x86_64" ]; then
+    ESP32_UART_DEV=""
+    for dev in /dev/ttyAMA3 /dev/ttyAMA2 /dev/ttyAMA0 /dev/ttyS0; do
+        if [ -c "$dev" ]; then
+            ESP32_UART_DEV="$dev"
+            break
+        fi
+    done
+
+    sudo mkdir -p /etc/systemd/system/esp32-proxy.service.d
+    {
+        echo "[Service]"
+        echo "Type=simple"
+        echo "UMask=000"
+        if [ -n "$ESP32_UART_DEV" ]; then
+            echo "Environment=MINI_PUPPER_UART_DEV=$ESP32_UART_DEV"
+        fi
+        # Keep running as root to avoid tty permission mismatches across images.
+        echo "User=root"
+    } | sudo tee /etc/systemd/system/esp32-proxy.service.d/override.conf > /dev/null
+
+    # If ttyS0 is selected, make sure serial getty does not occupy the device.
+    if [ "$ESP32_UART_DEV" = "/dev/ttyS0" ]; then
+        sudo systemctl stop serial-getty@ttyS0.service || true
+        sudo systemctl disable serial-getty@ttyS0.service || true
+    fi
+
+    sudo systemctl daemon-reload
+    sudo systemctl enable esp32-proxy.service
+    sudo systemctl restart esp32-proxy.service
+
+    SOCKET_PATH="/tmp/esp32-proxy.socket"
+    for i in $(seq 1 20); do
+        if [ -S "$SOCKET_PATH" ] && systemctl is-active --quiet esp32-proxy.service; then
+            break
+        fi
+        sleep 0.5
+    done
+
+    if ! systemctl is-active --quiet esp32-proxy.service; then
+        echo "Warning: esp32-proxy.service is not active after install"
+        sudo systemctl status esp32-proxy.service --no-pager -l || true
+    fi
+
+    if [ ! -S "$SOCKET_PATH" ]; then
+        echo "Warning: $SOCKET_PATH not ready. API calls may fail until esp32-proxy is up."
+    fi
+
+    if [ -n "$ESP32_UART_DEV" ]; then
+        echo "esp32-proxy configured with UART: $ESP32_UART_DEV"
+    else
+        echo "Warning: no UART device detected for esp32-proxy during install"
+    fi
+fi
+
 ### Install pip and Python dependencies
 # Ubuntu 24.04 enforces PEP 668 (externally-managed-environment),
 # so we need --break-system-packages for system-wide pip installs.
@@ -145,6 +201,11 @@ else
     sudo pip install setuptools==58.2.0 # temporary fix https://github.com/mangdangroboticsclub/mini_pupper_ros/pull/45#discussion_r1104759104
 fi
 sudo pip install $PIP_BREAK sounddevice soundfile
+
+### Install demo dependencies
+if [ -f "$BASEDIR/demos/requirements.txt" ]; then
+    sudo pip install $PIP_BREAK -r "$BASEDIR/demos/requirements.txt"
+fi
 
 ### Install Python module
 sudo apt install -y python3-dev
