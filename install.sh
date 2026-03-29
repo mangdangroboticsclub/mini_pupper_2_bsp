@@ -129,13 +129,27 @@ done
 
 ### Configure and start esp32-proxy so Python APIs work right after install
 if [ "$MACHINE" != "x86_64" ]; then
-    ESP32_UART_DEV=""
-    for dev in /dev/serial0 /dev/ttyAMA3 /dev/ttyAMA2 /dev/ttyAMA0 /dev/ttyS0; do
+    # Detect available UART devices
+    AVAILABLE_UARTS=""
+    for dev in /dev/serial0 /dev/ttyAMA0 /dev/ttyAMA2 /dev/ttyAMA3 /dev/ttyS0; do
         if [ -c "$dev" ]; then
-            ESP32_UART_DEV="$dev"
-            break
+            AVAILABLE_UARTS="$AVAILABLE_UARTS $dev"
         fi
     done
+    
+    # Try to set the first available UART, or leave empty for esp32-proxy auto-scan
+    ESP32_UART_DEV=""
+    for dev in $AVAILABLE_UARTS; do
+        ESP32_UART_DEV="$dev"
+        break
+    done
+
+    echo "Available UART devices: $AVAILABLE_UARTS"
+    if [ -n "$ESP32_UART_DEV" ]; then
+        echo "Using UART device: $ESP32_UART_DEV"
+    else
+        echo "Warning: No standard UART device found. esp32-proxy will attempt auto-detection at startup."
+    fi
 
     sudo mkdir -p /etc/systemd/system/esp32-proxy.service.d
     {

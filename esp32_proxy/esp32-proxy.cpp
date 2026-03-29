@@ -12,6 +12,8 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <string.h>
+#include <vector>
+#include <string>
 #include "esp32-proxy.h"
 
 #include "mini_pupper_host_base.h"
@@ -53,30 +55,37 @@ void esp32_protocol(setpoint_and_feedback_data * control_block)
 
     // reference : https://www.pololu.com/docs/0J73/15.5
 
-    // Open serial device
-    char const * filename = getenv("MINI_PUPPER_UART_DEV");
-    if ((filename == NULL) || (filename[0] == '\0'))
+    // Build candidate list: env var first, then fallback candidates
+    std::vector<std::string> candidates;
+    char const * env_uart = getenv("MINI_PUPPER_UART_DEV");
+    if ((env_uart != NULL) && (env_uart[0] != '\0'))
     {
-        filename = default_filename;
+        candidates.push_back(env_uart);
     }
+    candidates.push_back(default_filename);
+    candidates.push_back("/dev/ttyAMA0");
+    candidates.push_back("/dev/ttyAMA2");
+    candidates.push_back("/dev/ttyAMA3");
+    candidates.push_back("/dev/ttyS0");
 
-    int fd = open(
-        filename,           // UART device
-        O_RDWR | O_NOCTTY   // Read-Write access + Not the terminal of this process
-    );
-    // If env-selected UART is unavailable, fall back to the default UART.
-    if ((fd < 0) && (filename != default_filename))
+    int fd = -1;
+    std::string selected_uart;
+    for (auto const & device : candidates)
     {
-        printf("%s: failed to open UART device %s, fallback to %s\n", __func__, filename, default_filename);
-        filename = default_filename;
         fd = open(
-            filename,
+            device.c_str(),
             O_RDWR | O_NOCTTY
         );
+        if (fd >= 0)
+        {
+            selected_uart = device;
+            printf("%s: using UART device %s\n", __func__, selected_uart.c_str());
+            break;
+        }
     }
     if (fd < 0)
     {
-        printf("%s: failed to open UART device\n", __func__);
+        printf("%s: failed to open any UART device from candidates\n", __func__);
         exit(EXIT_FAILURE);
     }
 
