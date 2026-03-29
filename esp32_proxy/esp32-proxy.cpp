@@ -33,6 +33,120 @@ struct setpoint_and_feedback_data
     parameters_control_acknowledge_format feedback;
 };
 
+static bool configure_uart(int fd)
+{
+    int result = tcflush(fd, TCIOFLUSH);
+    if (result)
+    {
+        return false;
+    }
+
+    struct termios options;
+    result = tcgetattr(fd, &options);
+    if (result)
+    {
+        return false;
+    }
+
+    options.c_iflag &= ~(INLCR | IGNCR | ICRNL | IXON | IXOFF);
+    options.c_oflag &= ~(ONLCR | OCRNL);
+    options.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+
+    options.c_cc[VTIME] = 1;
+    options.c_cc[VMIN] = 0;
+
+    cfsetispeed(&options, B3000000);
+    cfsetospeed(&options, B3000000);
+
+    result = tcsetattr(fd, TCSANOW, &options);
+    return result == 0;
+}
+
+static bool probe_uart(
+    int fd,
+    parameters_control_instruction_format const & control,
+    parameters_control_acknowledge_format * feedback)
+{
+    if (!configure_uart(fd))
+    {
+        return false;
+    }
+
+    size_t const tx_payload_length { sizeof(parameters_control_instruction_format) + 2 };
+    size_t const tx_buffer_size { tx_payload_length + 4 };
+    u8 tx_buffer[tx_buffer_size]
+    {
+        0xFF,
+        0xFF,
+        0x01,
+        tx_payload_length,
+        INST_CONTROL
+    };
+    memcpy(tx_buffer + 5, &control, sizeof(parameters_control_instruction_format));
+    tx_buffer[tx_buffer_size - 1] = compute_checksum(tx_buffer);
+
+    int result = write(fd, (char *)tx_buffer, tx_buffer_size);
+    if (result != (ssize_t)tx_buffer_size)
+    {
+        return false;
+    }
+
+    size_t const rx_buffer_size { 128 };
+    u8 rx_buffer[rx_buffer_size] {0};
+    size_t const expected_lenght {4 + 1 + sizeof(parameters_control_acknowledge_format) + 1};
+    size_t received_length {0};
+    while (received_length < expected_lenght)
+    {
+        ssize_t read_length = read(
+            fd,
+            (char *)(rx_buffer + received_length),
+            expected_lenght - received_length
+        );
+        if (read_length < 0)
+        {
+            return false;
+        }
+        if (read_length == 0)
+        {
+            break;
+        }
+        received_length += read_length;
+    }
+
+    if (received_length < expected_lenght)
+    {
+        return false;
+    }
+
+    bool const rx_header_check {
+                (rx_buffer[0] == 0xFF)
+            &&  (rx_buffer[1] == 0xFF)
+            &&  (rx_buffer[2] == 0x01)
+            &&  (rx_buffer[3] <= (rx_buffer_size - 4))
+    };
+    if (!rx_header_check)
+    {
+        return false;
+    }
+
+    u8 expected_checksum {0};
+    bool const rx_checksum {checksum(rx_buffer, expected_checksum)};
+    bool const rx_payload_checksum_check {
+                (rx_buffer[4] == 0x00)
+            &&  rx_checksum
+    };
+    if (!rx_payload_checksum_check)
+    {
+        return false;
+    }
+
+    if (feedback != NULL)
+    {
+        memcpy(feedback, rx_buffer + 5, sizeof(parameters_control_acknowledge_format));
+    }
+    return true;
+}
+
 // Task handling communication with ESP32
 // - parameter (input/output) : the client/server shared-memory buffer
 void esp32_protocol(setpoint_and_feedback_data * control_block)
@@ -76,16 +190,35 @@ void esp32_protocol(setpoint_and_feedback_data * control_block)
             device.c_str(),
             O_RDWR | O_NOCTTY
         );
-        if (fd >= 0)
+        if (fd < 0)
+        {
+            continue;
+        }
+
+        bool probe_ok {false};
+        for (int attempt = 0; attempt < 5; ++attempt)
+        {
+            if (probe_uart(fd, control_block->control, &control_block->feedback))
+            {
+                probe_ok = true;
+                break;
+            }
+            usleep(50000);
+        }
+
+        if (probe_ok)
         {
             selected_uart = device;
             printf("%s: using UART device %s\n", __func__, selected_uart.c_str());
             break;
         }
+
+        close(fd);
+        fd = -1;
     }
     if (fd < 0)
     {
-        printf("%s: failed to open any UART device from candidates\n", __func__);
+        printf("%s: failed to find a UART device with valid ESP32 feedback\n", __func__);
         exit(EXIT_FAILURE);
     }
 

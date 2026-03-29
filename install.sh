@@ -155,6 +155,8 @@ if [ "$MACHINE" != "x86_64" ]; then
     {
         echo "[Service]"
         echo "Type=simple"
+        echo "Restart=on-failure"
+        echo "RestartSec=1"
         echo "UMask=000"
         if [ -n "$ESP32_UART_DEV" ]; then
             echo "Environment=MINI_PUPPER_UART_DEV=$ESP32_UART_DEV"
