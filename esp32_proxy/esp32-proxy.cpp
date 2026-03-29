@@ -20,7 +20,7 @@
 static bool const print_debug     {false};
 static bool const print_debug_max {false};
 
-static char const * filename {"/dev/ttyAMA3"};
+static char const * default_filename {"/dev/serial0"};
 
 static char const * version = PROJECT_VER;
 
@@ -54,10 +54,26 @@ void esp32_protocol(setpoint_and_feedback_data * control_block)
     // reference : https://www.pololu.com/docs/0J73/15.5
 
     // Open serial device
+    char const * filename = getenv("MINI_PUPPER_UART_DEV");
+    if ((filename == NULL) || (filename[0] == '\0'))
+    {
+        filename = default_filename;
+    }
+
     int fd = open(
         filename,           // UART device
         O_RDWR | O_NOCTTY   // Read-Write access + Not the terminal of this process
     );
+    // If env-selected UART is unavailable, fall back to the default UART.
+    if ((fd < 0) && (filename != default_filename))
+    {
+        printf("%s: failed to open UART device %s, fallback to %s\n", __func__, filename, default_filename);
+        filename = default_filename;
+        fd = open(
+            filename,
+            O_RDWR | O_NOCTTY
+        );
+    }
     if (fd < 0)
     {
         printf("%s: failed to open UART device\n", __func__);

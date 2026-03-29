@@ -130,7 +130,7 @@ done
 ### Configure and start esp32-proxy so Python APIs work right after install
 if [ "$MACHINE" != "x86_64" ]; then
     ESP32_UART_DEV=""
-    for dev in /dev/ttyAMA3 /dev/ttyAMA2 /dev/ttyAMA0 /dev/ttyS0; do
+    for dev in /dev/serial0 /dev/ttyAMA3 /dev/ttyAMA2 /dev/ttyAMA0 /dev/ttyS0; do
         if [ -c "$dev" ]; then
             ESP32_UART_DEV="$dev"
             break
