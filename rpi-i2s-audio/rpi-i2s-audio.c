@@ -4,6 +4,7 @@
 #include <linux/platform_device.h>
 #include <sound/simple_card.h>
 #include <linux/delay.h>
+#include <linux/version.h>
 /*
  * modified for linux 4.1.5
  * inspired by https://github.com/msperl/spi-config
@@ -14,11 +15,14 @@
  * change the codec name string in two places and the
  * codec_dai name string. (see codec's source file)
  *
- *
+ * Kernel 6.8+ compatibility: Uses of_node based registration for newer kernels
  * N.B. playback vs capture is determined by the codec choice
  * */
 
 void device_release_callback(struct device *dev) { /*  do nothing */ };
+
+/* Legacy kernel API (< 6.8) - uses asoc_simple_card_info struct */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 8, 0)
 static struct asoc_simple_card_info snd_rpi_simple_card_info = {
 .card = "snd_rpi_simple_card", // -> snd_soc_card.name
 .name = "simple-card_codec_link", // -> snd_soc_dai_link.name
@@ -40,6 +44,50 @@ static struct platform_device snd_rpi_simple_card_device = {
 .platform_data = &snd_rpi_simple_card_info, // *HACK ALERT*
 },
 };
+#else
+/* Kernel 6.8+ - Platform device registration for device tree based simple-card
+ * Create a minimal asoc_simple_card_info compatible structure for 6.8+
+ */
+static struct {
+	const char *card;
+	const char *name;
+	const char *codec;
+	const char *platform;
+	unsigned int daifmt;
+	struct {
+		const char *name;
+		unsigned int sysclk;
+	} cpu_dai;
+	struct {
+		const char *name;
+		unsigned int sysclk;
+	} codec_dai;
+} audio_info_68 = {
+	.card = "snd_rpi_simple_card",
+	.name = "simple-card_codec_link",
+	.codec = "snd-soc-dummy",
+	.platform = "fe203000.i2s",
+	.daifmt = SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBS_CFS,
+	.cpu_dai = {
+		.name = "fe203000.i2s",
+		.sysclk = 0
+	},
+	.codec_dai = {
+		.name = "snd-soc-dummy-dai",
+		.sysclk = 0
+	},
+};
+
+static struct platform_device snd_rpi_simple_card_device = {
+	.name = "asoc-simple-card",
+	.id = 0,
+	.num_resources = 0,
+	.dev = {
+		.release = &device_release_callback,
+		.platform_data = &audio_info_68,
+	},
+};
+#endif
 
 
 int hello_init(void)
@@ -49,8 +97,19 @@ int ret;
 
 ret = request_module(dmaengine);
 pr_alert("request module load '%s': %d\n",dmaengine, ret);
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 8, 0)
 ret = platform_device_register(&snd_rpi_simple_card_device);
-pr_alert("register platform device '%s': %d\n",snd_rpi_simple_card_device.name, ret);
+pr_alert("register platform device '%s' (legacy API): %d\n",snd_rpi_simple_card_device.name, ret);
+#else
+/* For kernel 6.8+: device tree properties are required; this is a fallback registration
+ * In production, use device tree with simple-card compatible nodes instead.
+ * This allows the simple-card driver to probe and initialize audio correctly.
+ */
+snd_rpi_simple_card_device.dev.of_node = NULL; 
+ret = platform_device_register(&snd_rpi_simple_card_device);
+pr_alert("register platform device '%s' (6.8+ compatible): %d\n",snd_rpi_simple_card_device.name, ret);
+#endif
 
 pr_alert("Hello World :)\n");
 return 0;

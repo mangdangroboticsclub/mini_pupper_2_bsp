@@ -5,10 +5,12 @@
 
 # update kernel modules if required and reboot
 # this covers the case where the kernel is updated before our install script run
-if ! $(dkms status | grep -q $(uname -r))
+if ! dkms status | grep -q "$(uname -r)"
 then
-    sudo /usr/sbin/dkms autoinstall --verbose --kernelver  $(uname -r)
-    sudo reboot
+    if sudo /usr/sbin/dkms autoinstall --verbose --kernelver "$(uname -r)"; then
+        sudo /usr/sbin/reboot
+        exit 0
+    fi
 fi
 
 # set cpu performance
@@ -17,5 +19,11 @@ echo performance > /sys/bus/cpu/devices/cpu0/cpufreq/scaling_governor
 # check for reconfiguration request
 /home/ubuntu/mini_pupper_bsp/System/check-reconfigure.sh
 
-cardnums==$(aplay -l  | grep Headphones | cut -d ' ' -f 2 | cut -d ':' -f 1)
-mpg123 -a hw:$cardnums,0 /home/ubuntu/mini_pupper_bsp/Audio/power_on.mp3 &
+# Play power-on sound (try specific Headphones device if available, fallback to default)
+if aplay -l 2>/dev/null | grep -q Headphones; then
+    cardnums=$(aplay -l | grep Headphones | cut -d ' ' -f 2 | cut -d ':' -f 1)
+    mpg123 -a hw:$cardnums,0 /home/ubuntu/mini_pupper_bsp/Audio/power_on.mp3 &
+else
+    # Fallback for systems without dedicated Headphones device (e.g., kernel 6.8 without proper audio overlay)
+    mpg123 /home/ubuntu/mini_pupper_bsp/Audio/power_on.mp3 &
+fi

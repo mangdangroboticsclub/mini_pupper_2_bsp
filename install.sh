@@ -3,7 +3,12 @@
 set -e
 
 sudo apt update
-sudo apt -y upgrade
+
+# Full system upgrade is optional to keep BSP install deterministic and avoid
+# interactive restart flows during provisioning on Ubuntu 24.
+if [ "${MINI_PUPPER_DO_UPGRADE:-0}" = "1" ]; then
+    sudo DEBIAN_FRONTEND=noninteractive apt -y upgrade
+fi
 
 ### Get directory where this script is installed
 BASEDIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
@@ -51,12 +56,49 @@ grep -q "mini_pupper_v2" /etc/hosts || echo "127.0.0.1	mini_pupper_v2" | sudo te
 
 ### upgrade Ubuntu and install required packages
 echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections
-sudo sed -i "s/# deb-src/deb-src/g" /etc/apt/sources.list
+# Ubuntu 24.04 (Noble) uses DEB822 format in /etc/apt/sources.list.d/ubuntu.sources
+# Ubuntu 22.04 (Jammy) uses traditional /etc/apt/sources.list
+if [ -f /etc/apt/sources.list ] && [ -s /etc/apt/sources.list ]; then
+    sudo sed -i "s/# deb-src/deb-src/g" /etc/apt/sources.list
+fi
+
+### Detect Ubuntu version once for version-specific install paths
+UBUNTU_CODENAME=$(lsb_release -cs)
+echo "Detected Ubuntu codename: $UBUNTU_CODENAME"
+
+if [ "$UBUNTU_CODENAME" == "noble" ]; then
+    echo "Optimizing package versions for Ubuntu 24.04 (Noble)..."
+    sudo apt-get clean
+    sudo apt-get install -fy || true
+
+    # Noble images may have security-updated library versions that conflict with
+    # base-repo package constraints (e.g., bzip2 <-> libbz2-1.0).
+    check_and_fix() {
+        local pkg=$1
+        local target=$2
+        local current=$(dpkg-query -W -f='${Version}' "$pkg" 2>/dev/null || echo "")
+
+        if [ -n "$current" ] && [ "$current" != "$target" ]; then
+            echo "Adjusting $pkg: $current -> $target"
+            sudo apt-get install --allow-downgrades -y "$pkg=$target" || true
+        fi
+    }
+
+    BZ2_VER="1.0.8-5.1"
+    ZLIB_VER="1:1.3.dfsg-3.1ubuntu2"
+    check_and_fix "libbz2-1.0" "$BZ2_VER"
+    check_and_fix "zlib1g" "$ZLIB_VER"
+fi
+
 #sudo apt update
 #sudo apt -y upgrade
-sudo apt install -y i2c-tools dpkg-dev curl python-is-python3 mpg321 python3-tk openssh-server screen alsa-utils libportaudio2 libsndfile1
-sudo sed -i "s/pulse/alsa/" /etc/libao.conf
-if [ $(lsb_release -cs) == "jammy" ]; then
+sudo apt install -y i2c-tools curl python-is-python3 mpg123 python3-tk openssh-server
+sudo apt install -y build-essential python3-pip screen alsa-utils libportaudio2 libsndfile1
+if [ "$UBUNTU_CODENAME" != "noble" ]; then
+    [ ! -f "/etc/libao.conf" ] && sudo apt update && sudo apt install -y libao-common libao4
+    [ -f "/etc/libao.conf" ] && sudo sed -i "s/pulse/alsa/" /etc/libao.conf
+fi
+if [ "$UBUNTU_CODENAME" == "jammy" ]; then
     sudo sed -i "s/cards.pcm.front/cards.pcm.default/" /usr/share/alsa/alsa.conf
 fi
 
@@ -64,7 +106,15 @@ fi
 sudo rm -rf /var/lib/mini_pupper_bsp
 sudo cp -r $BASEDIR/Display /var/lib/mini_pupper_bsp
 
+### Install kernel headers for DKMS module compilation
+KERNEL_VERSION=$(uname -r)
+sudo apt install -y linux-headers-${KERNEL_VERSION} || echo "Warning: Could not install exact kernel headers, trying generic..."
+if ! dpkg -l | grep -q "linux-headers-${KERNEL_VERSION}"; then
+    sudo apt install -y linux-headers-raspi || true
+fi
+
 ### Install system components
+# rpi-i2s-audio DKMS is optional; audio playback works with or without Headphones device
 $BASEDIR/prepare_dkms.sh
 if [ "$MACHINE" == "x86_64" ]
 then
@@ -77,12 +127,101 @@ for dir in ${COMPONENTS[@]}; do
     ./install.sh
 done
 
-### Install pip
+### Configure and start esp32-proxy so Python APIs work right after install
+if [ "$MACHINE" != "x86_64" ]; then
+    # Detect available UART devices
+    AVAILABLE_UARTS=""
+    for dev in /dev/serial0 /dev/ttyAMA0 /dev/ttyAMA2 /dev/ttyAMA3 /dev/ttyS0; do
+        if [ -c "$dev" ]; then
+            AVAILABLE_UARTS="$AVAILABLE_UARTS $dev"
+        fi
+    done
+    
+    # Try to set the first available UART, or leave empty for esp32-proxy auto-scan
+    ESP32_UART_DEV=""
+    for dev in $AVAILABLE_UARTS; do
+        ESP32_UART_DEV="$dev"
+        break
+    done
+
+    echo "Available UART devices: $AVAILABLE_UARTS"
+    if [ -n "$ESP32_UART_DEV" ]; then
+        echo "Using UART device: $ESP32_UART_DEV"
+    else
+        echo "Warning: No standard UART device found. esp32-proxy will attempt auto-detection at startup."
+    fi
+
+    sudo mkdir -p /etc/systemd/system/esp32-proxy.service.d
+    {
+        echo "[Service]"
+        echo "Type=simple"
+        echo "Restart=on-failure"
+        echo "RestartSec=1"
+        echo "UMask=000"
+        if [ -n "$ESP32_UART_DEV" ]; then
+            echo "Environment=MINI_PUPPER_UART_DEV=$ESP32_UART_DEV"
+        fi
+        # Keep running as root to avoid tty permission mismatches across images.
+        echo "User=root"
+    } | sudo tee /etc/systemd/system/esp32-proxy.service.d/override.conf > /dev/null
+
+    # If ttyS0 is selected, make sure serial getty does not occupy the device.
+    if [ "$ESP32_UART_DEV" = "/dev/ttyS0" ]; then
+        sudo systemctl stop serial-getty@ttyS0.service || true
+        sudo systemctl disable serial-getty@ttyS0.service || true
+    fi
+
+    sudo systemctl daemon-reload
+    sudo systemctl enable esp32-proxy.service
+    sudo systemctl restart esp32-proxy.service
+
+    SOCKET_PATH="/tmp/esp32-proxy.socket"
+    for i in $(seq 1 20); do
+        if [ -S "$SOCKET_PATH" ] && systemctl is-active --quiet esp32-proxy.service; then
+            break
+        fi
+        sleep 0.5
+    done
+
+    if ! systemctl is-active --quiet esp32-proxy.service; then
+        echo "Warning: esp32-proxy.service is not active after install"
+        sudo systemctl status esp32-proxy.service --no-pager -l || true
+    fi
+
+    if [ ! -S "$SOCKET_PATH" ]; then
+        echo "Warning: $SOCKET_PATH not ready. API calls may fail until esp32-proxy is up."
+    fi
+
+    if [ -n "$ESP32_UART_DEV" ]; then
+        echo "esp32-proxy configured with UART: $ESP32_UART_DEV"
+    else
+        echo "Warning: no UART device detected for esp32-proxy during install"
+    fi
+fi
+
+### Install pip and Python dependencies
+# Ubuntu 24.04 enforces PEP 668 (externally-managed-environment),
+# so we need --break-system-packages for system-wide pip installs.
+PIP_BREAK=""
+if [ "$UBUNTU_CODENAME" == "noble" ]; then
+    PIP_BREAK="--break-system-packages"
+fi
+
 cd /tmp
-wget --no-check-certificate https://bootstrap.pypa.io/get-pip.py
-sudo python get-pip.py
-sudo pip install setuptools==58.2.0 # temporary fix https://github.com/mangdangroboticsclub/mini_pupper_ros/pull/45#discussion_r1104759104
-sudo pip install sounddevice soundfile
+if [ "$UBUNTU_CODENAME" == "noble" ]; then
+    # Skip pip bootstrap on Noble to avoid conflicts with system-managed pip.
+    sudo pip3 install $PIP_BREAK setuptools lgpio
+else
+    wget --no-check-certificate https://bootstrap.pypa.io/get-pip.py
+    sudo python get-pip.py
+    sudo pip install setuptools==58.2.0 # temporary fix https://github.com/mangdangroboticsclub/mini_pupper_ros/pull/45#discussion_r1104759104
+fi
+sudo pip install $PIP_BREAK sounddevice soundfile
+
+### Install demo dependencies
+if [ -f "$BASEDIR/demos/requirements.txt" ]; then
+    sudo pip install $PIP_BREAK -r "$BASEDIR/demos/requirements.txt"
+fi
 
 ### Install Python module
 sudo apt install -y python3-dev
@@ -95,9 +234,9 @@ else
 fi
 if [ "$IS_RELEASE" == "YES" ]
 then
-    sudo PBR_VERSION=$(cd $BASEDIR; ./get-version.sh) pip install $BASEDIR/$PYTHONMODLE
+    sudo PBR_VERSION=$(cd $BASEDIR; ./get-version.sh) pip install $PIP_BREAK $BASEDIR/$PYTHONMODLE
 else
-    sudo pip install $BASEDIR/$PYTHONMODLE
+    sudo pip install $PIP_BREAK $BASEDIR/$PYTHONMODLE
 fi
 
 # Install Camera
@@ -114,32 +253,42 @@ fi
 getent group gpio || sudo groupadd gpio && sudo gpasswd -a $(whoami) gpio
 getent group dialout || sudo groupadd dialout && sudo gpasswd -a $(whoami) dialout
 getent group spi || sudo groupadd spi && sudo gpasswd -a $(whoami) spi
+# Pi 4 udev rule (pinctrl-bcm2711)
+# Support both old kernel (gpiochip0) and kernel 6.8+ (gpiochip512)
 sudo tee /etc/udev/rules.d/99-mini_pupper-gpio.rules << EOF > /dev/null
-KERNELS=="gpiochip0", SUBSYSTEM=="gpio", ACTION=="add", ATTR{label}=="pinctrl-bcm2711", RUN+="/usr/lib/udev/gpio-mini_pupper.sh"
+SUBSYSTEM=="gpio", ACTION=="add", ATTR{label}=="pinctrl-bcm2711", RUN+="/usr/lib/udev/gpio-mini_pupper.sh"
 KERNEL=="gpiomem", OWNER="root", GROUP="gpio", MODE="0660"
 EOF
 sudo tee /etc/udev/rules.d/99-mini_pupper-spi.rules << EOF > /dev/null
 KERNEL=="spidev0.0", OWNER="root", GROUP="spi", MODE="0660"
 EOF
 
-sudo tee /usr/lib/udev/gpio-mini_pupper.sh << EOF > /dev/null
+sudo tee /usr/lib/udev/gpio-mini_pupper.sh << 'EOF' > /dev/null
 #!/bin/bash
-# Board power
-echo 21 > /sys/class/gpio/export
-echo out > /sys/class/gpio/gpio21/direction
-chmod 666 /sys/class/gpio/gpio21/value
-echo 1 > /sys/class/gpio/gpio21/value
+GPIO_BASE=0
+if [ -d /sys/class/gpio/gpiochip512 ]; then
+    GPIO_BASE=512
+fi
 
-echo 25 > /sys/class/gpio/export
-echo out > /sys/class/gpio/gpio25/direction
-chmod 666 /sys/class/gpio/gpio25/value
-echo 1 > /sys/class/gpio/gpio25/value
+# Board power
+PIN=$((GPIO_BASE + 21))
+echo $PIN > /sys/class/gpio/export 2>/dev/null
+echo out > /sys/class/gpio/gpio${PIN}/direction
+chmod 666 /sys/class/gpio/gpio${PIN}/value
+echo 1 > /sys/class/gpio/gpio${PIN}/value
+
+PIN=$((GPIO_BASE + 25))
+echo $PIN > /sys/class/gpio/export 2>/dev/null
+echo out > /sys/class/gpio/gpio${PIN}/direction
+chmod 666 /sys/class/gpio/gpio${PIN}/value
+echo 1 > /sys/class/gpio/gpio${PIN}/value
 
 # LCD power
-echo 22 > /sys/class/gpio/export
-echo out > /sys/class/gpio/gpio22/direction
-chmod 666 /sys/class/gpio/gpio22/value
-echo 1 > /sys/class/gpio/gpio22/value
+PIN=$((GPIO_BASE + 22))
+echo $PIN > /sys/class/gpio/export 2>/dev/null
+echo out > /sys/class/gpio/gpio${PIN}/direction
+chmod 666 /sys/class/gpio/gpio${PIN}/value
+echo 1 > /sys/class/gpio/gpio${PIN}/value
 EOF
 sudo chmod +x /usr/lib/udev/gpio-mini_pupper.sh
 

@@ -50,7 +50,10 @@ dtoverlay=spi0-1cs
 dtoverlay=audremap,pins_12_13
 dtparam=pwr_led_trigger=none
 dtparam=pwr_led_activelow=off
-dtoverlay=gpio-key,gpio=2,label=rear,keycode=240
-dtoverlay=gpio-key,gpio=3,label=right,keycode=240
+# For dual-mic voicehat support, GPIO2/3 are reserved by I2C1.
+# dtoverlay=gpio-key,gpio=2,label=rear,keycode=240
+# dtoverlay=gpio-key,gpio=3,label=right,keycode=240
 dtoverlay=gpio-key,gpio=6,label=front,keycode=240
-dtoverlay=gpio-key,gpio=16,label=left,keycode=240
+# GPIO16 is reserved by voicehat codec reset.
+# dtoverlay=gpio-key,gpio=16,label=left,keycode=240
+dtoverlay=googlevoicehat-soundcard
