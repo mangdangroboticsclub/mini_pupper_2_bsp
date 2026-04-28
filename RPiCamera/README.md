@@ -34,12 +34,15 @@ reboot
 ## Step3: Test Mini Pupper MIPI camera by Ubuntu22.04 PC
 
 
-- Open a terminal and do camera test
+- Open a terminal and do camera live video test
 ```bash
 ssh -X minipupper@IP # such as, ssh -X ubuntu@192.168.5.109
 cd ~/mini_pupper_2_bsp/demos  # To demos directory
 python camera_ffplay_test.py  # run ffplay test demo
 ```
--  Camera image in RViz
-TODO
+-  Camera image
+Open a terminal and do the following command to get a picture, named snapshot.jpg
+```bash
+ffmpeg -f video4linux2 -i /dev/video0 -frames:v 1 snapshot.jpg
+```
 
