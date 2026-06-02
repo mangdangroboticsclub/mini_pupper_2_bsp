@@ -28,7 +28,9 @@ echo "start_x=1" | sudo tee -a /boot/firmware/config.txt
 sudo usermod -aG video $USER
 
 # Install xauth for PC(Ubuntu22.04) GUI Display
-sudo apt install -y xauth
+if apt-cache show xauth >/dev/null 2>&1; then
+	sudo apt install -y xauth
+fi
 
 # Compile the dt-blob file to support the camera
 cd $BASEDIR/dts

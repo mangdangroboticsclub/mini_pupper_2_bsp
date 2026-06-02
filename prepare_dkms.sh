@@ -13,6 +13,9 @@ sudo cp Makefile /usr/src/rpi-i2s-audio-1.0
 sudo cp rpi-i2s-audio.c /usr/src/rpi-i2s-audio-1.0/
 sudo cp dkms.conf /usr/src/rpi-i2s-audio-1.0/
 
+# Remove existing module if present to allow re-installation
+sudo dkms remove -m rpi-i2s-audio -v 1.0 --all 2>/dev/null || true
+
 sudo dkms add -m rpi-i2s-audio -v 1.0
 sudo dkms build -m rpi-i2s-audio -v 1.0
 sudo dkms install -m rpi-i2s-audio -v 1.0

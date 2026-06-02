@@ -1,0 +1,41 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "brcm,bcm2835", "brcm,bcm2711", "brcm,bcm2712";
+
+	fragment@0 {
+		target-path = "/";
+		__overlay__ {
+			snd_rpi_dummy: sound {
+				compatible = "simple-audio-card";
+				simple-audio-card,format = "i2s";
+				simple-audio-card,bitclock-master = <&snd_rpi_cpu>;
+				simple-audio-card,frame-master = <&snd_rpi_cpu>;
+				simple-audio-card,layout = "mono";
+				simple-audio-card,name = "rpi-dummy-audio";
+
+				snd_rpi_cpu: simple-audio-card,cpu {
+					sound-dai = <&i2s>;
+					dai-tdm-slot-size = <32>;
+				};
+
+				snd_rpi_codec: simple-audio-card,codec {
+					sound-dai = <&pcm1704>;
+				};
+			};
+
+			pcm1704: pcm1704-codec {
+				#sound-dai-cells = <0>;
+				compatible = "linear,pcm1704-codec";
+			};
+		};
+	};
+
+	fragment@1 {
+		target = <&i2s>;
+		__overlay__ {
+			status = "okay";
+		};
+	};
+};
