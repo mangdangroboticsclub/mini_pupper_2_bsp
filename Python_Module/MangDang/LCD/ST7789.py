@@ -23,12 +23,85 @@
 # https://github.com/pimoroni/st7789-python/blob/master/library/ST7789/__init__.py
 # which is released under the MIT license.
 #
+import atexit
 import numbers
+import os
 import time
 import numpy as np
 
 import spidev
-import RPi.GPIO as GPIO
+
+try:
+    import lgpio
+except ImportError:
+    lgpio = None
+
+
+class _LGPIOAdapter(object):
+    BCM = "BCM"
+    OUT = "OUT"
+    LOW = 0
+    HIGH = 1
+
+    def __init__(self):
+        self._handle = None
+        self._claimed = set()
+        self._chip = None
+        self._open_chip()
+        atexit.register(self.close)
+
+    def _open_chip(self):
+        env_chip = os.environ.get("MINI_PUPPER_LCD_GPIOCHIP")
+        chips = [int(env_chip)] if env_chip else [4, 0]
+        last_error = None
+
+        for chip in chips:
+            try:
+                self._handle = lgpio.gpiochip_open(chip)
+                self._chip = chip
+                return
+            except Exception as error:
+                last_error = error
+
+        raise RuntimeError("Unable to open LCD gpiochip {}".format(chips)) from last_error
+
+    def setwarnings(self, value):
+        pass
+
+    def setmode(self, mode):
+        if mode != self.BCM:
+            raise ValueError("Only BCM pin numbering is supported by lgpio")
+
+    def setup(self, pin, mode):
+        if mode != self.OUT:
+            raise ValueError("Only output GPIOs are supported by the LCD driver")
+        if pin not in self._claimed:
+            lgpio.gpio_claim_output(self._handle, pin, 0)
+            self._claimed.add(pin)
+
+    def output(self, pin, value):
+        if pin not in self._claimed:
+            self.setup(pin, self.OUT)
+        lgpio.gpio_write(self._handle, pin, 1 if value else 0)
+
+    def close(self):
+        if self._handle is not None:
+            lgpio.gpiochip_close(self._handle)
+            self._handle = None
+
+
+def _get_gpio():
+    if lgpio is not None:
+        try:
+            return _LGPIOAdapter()
+        except Exception:
+            pass
+
+    import RPi.GPIO as GPIO
+    return GPIO
+
+
+GPIO = _get_gpio()
 
 
 

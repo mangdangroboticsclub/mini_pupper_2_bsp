@@ -25,10 +25,10 @@ disable_overscan=1
 # support audio output)
 #hdmi_drive=2
 
-# Enable the serial pins
+# Enable UART2 on GPIO4/5 for the ESP32 link on CM5
 force_eeprom_read=0
 disable_poe_fan=1
-dtoverlay=uart2
+dtoverlay=uart2-pi5
 
 # Autoload overlays for any recognized cameras or displays that are attached
 # to the CSI/DSI ports. Please note this is for libcamera support, *not* for
@@ -40,17 +40,16 @@ display_auto_detect=1
 arm_64bit=1
 dtoverlay=dwc2
 
-# Enable serial buss to ESP32
-dtoverlay=uart3
-
-
 [all]
 # Required for mini pupper v2
 dtoverlay=spi0-1cs
 dtoverlay=audremap,pins_12_13
 dtparam=pwr_led_trigger=none
 dtparam=pwr_led_activelow=off
-dtoverlay=gpio-key,gpio=2,label=rear,keycode=240
-dtoverlay=gpio-key,gpio=3,label=right,keycode=240
+# For dual-mic voicehat support, GPIO2/3 are reserved by I2C1.
+# dtoverlay=gpio-key,gpio=2,label=rear,keycode=240
+# dtoverlay=gpio-key,gpio=3,label=right,keycode=240
 dtoverlay=gpio-key,gpio=6,label=front,keycode=240
-dtoverlay=gpio-key,gpio=16,label=left,keycode=240
+# GPIO16 is reserved by voicehat codec reset.
+# dtoverlay=gpio-key,gpio=16,label=left,keycode=240
+dtoverlay=googlevoicehat-soundcard
